@@ -1,4 +1,19 @@
 @import "tailwindcss";
+
+body {
+  @apply text-gray-900 bg-white;
+}
+select {
+  color: #111827;       /* gray-900 */
+  background-color: #ffffff;
+}
+
+select option {
+  color: #111827;
+  background-color: #ffffff;
+}
+
+
 /*:root {*/
 /*  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;*/
 /*  line-height: 1.5;*/

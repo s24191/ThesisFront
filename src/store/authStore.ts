@@ -17,7 +17,9 @@ type AuthState = {
   fetchUser: () => Promise<void>;
 };
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+
+export const useAuthStore = create<AuthState>()((set, get) => ({
   token: typeof window !== "undefined" ? localStorage.getItem("token") : null,
   user: null,
 
@@ -38,14 +40,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user: null });
       return;
     }
+
     try {
-      const res = await fetch("/auth/users/me", {
+      const res = await fetch(`${API_URL}/auth/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to fetch user");
+      if (!res.ok) throw new Error(`Failed to fetch user: ${res.status}`);
       const user: UserProfile = await res.json();
       set({ user });
-    } catch {
+    } catch (e) {
+      console.error("fetchUser error", e);
       set({ user: null });
     }
   },

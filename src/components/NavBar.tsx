@@ -63,13 +63,24 @@ export const NavBar: React.FC = () => {
               </>
             ) : (
               <>
-                {/* ← here is your “nickname” line */}
-                <span className="block px-4 py-2 text-gray-700">
-                  Hello, {user.username}
-                </span>
+                <div className="px-4 py-2 border-b border-gray-200">
+                  <div className="text-xs text-gray-500">Signed in as</div>
+                  <div className="text-sm font-semibold truncate">
+                    {user.username}
+                  </div>
+                </div>
+
+                <Link
+                  to="/settings"
+                  className="block px-4 py-2 text-sm hover:bg-gray-100"
+                  onClick={() => setOpen(false)}
+                >
+                  Settings
+                </Link>
+
                 <button
                   onClick={onLogout}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100"
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                 >
                   Logout
                 </button>

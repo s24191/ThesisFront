@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 
 import { NavBar } from "@/components/NavBar";
 import { Home } from "@/pages/Home";
+import { WinesPage } from "@/pages/WinesPage";
 import { LoginForm } from "@/features/user/Login/LoginForm";
 import { RegisterForm } from "@/features/user/Register/RegisterForm";
 import { useAuthStore } from "@/store/authStore";
@@ -24,6 +25,7 @@ return (
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
+            <Route path="/wines" element={<WinesPage />} />
           </Routes>
         </div>
       </div>
