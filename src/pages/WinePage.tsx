@@ -1,0 +1,415 @@
+import React from "react";
+import {useParams} from "react-router-dom";
+
+const API_BASE = "http://127.0.0.1:8000";
+
+type WineOffer = {
+  shop_name: string;
+  shop_url: string;
+  price: number;
+  image_url?: string | null;
+};
+
+type Wine = {
+  id: number;
+  name: string;
+  year?: number | null;
+  country: string;
+  region?: string | null;
+  type_of_wine: string;
+  taste: string;
+  grapes?: string | null;
+  alc_perc?: number | null;
+  capacity_ml?: number | null;
+  rating?: number | null;
+  ratings_count?: number | null;
+  offers: WineOffer[];
+};
+
+type SimilarWine = {
+  id: number;
+  name: string;
+  country: string;
+  region?: string | null;
+  type_of_wine?: string | null;
+};
+
+
+// --------- Static  for now ---------
+
+const STATIC_TASTE = {
+  body: 70,      // Light–Bold
+  tannin: 40,    // Smooth–Tannic
+  sweetness: 20, // Dry–Sweet
+  acidity: 60,   // Soft–Acidic
+  notes: ["black cherry", "plum", "vanilla", "oak"],
+  food: ["grilled steak", "hard cheese", "roast lamb"],
+};
+
+
+// --------- Small UI components ---------
+
+const TasteSlider: React.FC<{
+  labelLeft: string;
+  labelRight: string;
+  value: number;
+}> = ({ labelLeft, labelRight, value }) => {
+  const clamped = Math.max(0, Math.min(100, value));
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex justify-between text-xs text-gray-600">
+        <span>{labelLeft}</span>
+        <span>{labelRight}</span>
+      </div>
+      <div className="relative h-1.5 w-full rounded-full bg-neutral-100">
+        <div
+          className="absolute top-0 h-1.5 rounded-full bg-red-700 transition-all"
+          style={{
+            left: `${clamped / 2}%`,
+            width: "30%",
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+const WineImageCarousel: React.FC<{ wine: Wine }> = ({ wine }) => {
+  const images = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (wine.offers || [])
+            .map((o) => o.image_url)
+            .filter((u): u is string => !!u)
+        )
+      ),
+    [wine.offers]
+  );
+
+  const [index, setIndex] = React.useState(0);
+  const [hoverZone, setHoverZone] = React.useState<"left" | "right" | null>(
+    null
+  );
+
+  const FALLBACK =
+    "https://via.placeholder.com/320x480?text=No+Image";
+
+  if (images.length === 0) {
+    return (
+      <div className="relative w-full aspect-[2/3] overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-400">
+        No image
+      </div>
+    );
+  }
+
+  const goPrev = () =>
+    setIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  const goNext = () =>
+    setIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x < rect.width / 2) goPrev();
+    else goNext();
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const zone =
+      x < rect.width / 3
+        ? "left"
+        : x > (2 * rect.width) / 3
+        ? "right"
+        : null;
+    setHoverZone(zone);
+  };
+
+  return (
+    <div
+      className="relative w-full aspect-[2/3] overflow-hidden rounded-lg cursor-pointer"
+      onClick={handleClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHoverZone(null)}
+    >
+      <img
+        src={images[index]}
+        alt={wine.name}
+        className="h-full w-full object-cover"
+        loading="lazy"
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).src = FALLBACK;
+        }}
+      />
+      {hoverZone === "left" && images.length > 1 && (
+        <button
+          type="button"
+          className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white text-xl hover:bg-black/70 hover:scale-105"
+          onClick={(e) => {
+            e.stopPropagation();
+            goPrev();
+          }}
+        >
+          ‹
+        </button>
+      )}
+      {hoverZone === "right" && images.length > 1 && (
+        <button
+          type="button"
+          className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white text-xl hover:bg-black/70 hover:scale-105"
+          onClick={(e) => {
+            e.stopPropagation();
+            goNext();
+          }}
+        >
+          ›
+        </button>
+      )}
+    </div>
+  );
+};
+
+// --------- Main page component ---------
+
+export const WinePage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const wineId = Number(id);
+
+  const [wine, setWine] = React.useState<Wine | null>(null);
+  const [similar, setSimilar] = React.useState<SimilarWine[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!wineId) return;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+
+        const [wineRes, similarRes] = await Promise.all([
+          fetch(`${API_BASE}/wines/${wineId}/detail`),
+          fetch(`${API_BASE}/wines/${wineId}/similar`),
+        ]);
+
+        if (!wineRes.ok) {
+          throw new Error(`Wine request failed: ${wineRes.status}`);
+        }
+        const wineJson = (await wineRes.json()) as Wine;
+
+        let similarJson: SimilarWine[] = [];
+        if (similarRes.ok) {
+          similarJson = (await similarRes.json()) as SimilarWine[];
+        }
+
+        setWine(wineJson);
+        setSimilar(similarJson);
+      } catch (e: any) {
+        console.error(e);
+        setError(e?.message ?? "Unknown error");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [wineId]);
+
+  if (loading) {
+    return <div className="p-4 text-sm">Loading…</div>;
+  }
+
+  if (error || !wine) {
+    return (
+      <div className="p-4 text-sm text-red-600">
+        Failed to load wine: {error ?? "not found"}
+      </div>
+    );
+  }
+
+  const hasOffers = Array.isArray(wine.offers) && wine.offers.length > 0;
+const cheapest =
+  hasOffers
+    ? wine.offers!.reduce(
+        (min, o) => (min === null || o.price < min ? o.price : min),
+        null as number | null
+      )
+    : null;
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-6">
+      {/* Top: image + main details */}
+      <div className="flex flex-col gap-6 md:flex-row">
+        <div className="md:w-1/3">
+          <WineImageCarousel wine={wine} />
+        </div>
+
+        <div className="md:w-2/3 flex flex-col gap-3">
+          <h1 className="text-2xl font-semibold">{wine.name}</h1>
+          <div className="text-sm text-gray-600">
+            {wine.year && <span className="mr-2">{wine.year}</span>}
+            <span>{wine.country}</span>
+            {wine.region && <span> · {wine.region}</span>}
+          </div>
+
+          <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+            <div>
+              <span className="font-medium">Style: </span>
+              <span>
+                {wine.type_of_wine}, {wine.taste}
+              </span>
+            </div>
+            {wine.grapes && (
+              <div>
+                <span className="font-medium">Grapes: </span>
+                <span>{wine.grapes}</span>
+              </div>
+            )}
+            {wine.alc_perc && (
+              <div>
+                <span className="font-medium">Alcohol: </span>
+                <span>{wine.alc_perc}%</span>
+              </div>
+            )}
+            {wine.capacity_ml && (
+              <div>
+                <span className="font-medium">Volume: </span>
+                <span>{wine.capacity_ml} ml</span>
+              </div>
+            )}
+            {wine.rating && (
+              <div>
+                <span className="font-medium">Rating: </span>
+                <span>
+                  {wine.rating.toFixed(1)} ({wine.ratings_count ?? 0} ratings)
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3">
+            <h2 className="text-sm font-semibold">Where to buy</h2>
+            {!hasOffers ? (
+              <p className="mt-1 text-xs text-gray-500">No offers available.</p>
+            ) : (
+              <ul className="mt-1 space-y-1 text-sm">
+                {wine.offers!.map((offer) => (
+                  <li
+                    key={offer.shop_name + offer.shop_url}
+                    className="flex items-center justify-between"
+                  >
+                    <span>{offer.shop_name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium">
+                        {offer.price.toFixed(2)} zł
+                      </span>
+                      <a
+                        href={offer.shop_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-md bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-800"
+                      >
+                        Go to shop
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {cheapest !== null && (
+              <p className="mt-1 text-xs text-gray-500">
+                Best price: {cheapest.toFixed(2)} zł
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Taste profile */}
+      <section className="mt-8 border-t pt-6">
+        <h2 className="text-lg font-semibold mb-3">
+          What does this wine taste like?
+        </h2>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <TasteSlider labelLeft="Light" labelRight="Bold" value={STATIC_TASTE.body} />
+          <TasteSlider
+            labelLeft="Smooth"
+            labelRight="Tannic"
+            value={STATIC_TASTE.tannin}
+          />
+          <TasteSlider labelLeft="Dry" labelRight="Sweet" value={STATIC_TASTE.sweetness} />
+          <TasteSlider labelLeft="Soft" labelRight="Acidic" value={STATIC_TASTE.acidity} />
+        </div>
+
+        <p className="mt-3 text-sm text-gray-700">
+          Medium‑bodied, quite smooth, dry and fairly acidic.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          {STATIC_TASTE.notes.map((note) => (
+            <span
+              key={note}
+              className="rounded-full bg-rose-50 px-3 py-1 text-rose-900"
+            >
+              {note}
+            </span>
+          ))}
+        </div>
+
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold mb-1">Food pairings</h3>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {STATIC_TASTE.food.map((f) => (
+              <span
+                key={f}
+                className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-900"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Similar wines */}
+      <section className="mt-8 border-t pt-6">
+        <h2 className="text-lg font-semibold mb-3">Similar wines</h2>
+        {similar.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            We do not have similar wines yet.
+          </p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-3">
+            {similar.map((w) => (
+              <a
+                key={w.id}
+                href={`/wines/${w.id}`}
+                className="group rounded-xl border border-slate-700/70 bg-slate-900/60 p-3 text-sm shadow-sm
+                           hover:border-emerald-400 hover:bg-slate-900 hover:shadow-md transition-colors"
+              >
+                <div className="font-semibold text-slate-50 group-hover:text-emerald-200 line-clamp-2">
+                  {w.name}
+                </div>
+                <div className="mt-1 text-xs text-slate-300/80">
+                  {w.country}
+                  {w.region && <> · {w.region}</>}
+                </div>
+                {w.type_of_wine && (
+                  <div className="mt-2 inline-flex items-center rounded-full bg-slate-800/80 px-2 py-0.5 text-[11px] text-emerald-200">
+                    {w.type_of_wine}
+                  </div>
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
+
+    </div>
+  );
+};

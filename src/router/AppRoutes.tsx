@@ -7,6 +7,7 @@ import { WinesPage } from "@/pages/WinesPage";
 import { LoginForm } from "@/features/user/Login/LoginForm";
 import { RegisterForm } from "@/features/user/Register/RegisterForm";
 import { useAuthStore } from "@/store/authStore";
+import {WinePage} from "@/pages/WinePage.tsx";
 
 export const AppRoutes: React.FC = () => {
   const fetchUser = useAuthStore((s) => s.fetchUser);
@@ -26,6 +27,7 @@ return (
             <Route path="/login" element={<LoginForm />} />
             <Route path="/register" element={<RegisterForm />} />
             <Route path="/wines" element={<WinesPage />} />
+            <Route path="/wines/:id" element={<WinePage />} />
           </Routes>
         </div>
       </div>
