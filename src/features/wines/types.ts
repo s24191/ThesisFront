@@ -14,3 +14,12 @@ export interface Wine {
   best_price: number | null;
   offers: WineOffer[];
 }
+
+export type WineComment = {
+  id: number;
+  user_id: string;
+  username: string;
+  rating: number;
+  text: string;
+  created_at: string;
+};

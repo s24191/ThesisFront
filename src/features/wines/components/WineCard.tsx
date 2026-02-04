@@ -1,5 +1,6 @@
 import type { Wine } from "../types";
 import { WineImageCarousel } from "./WineImageCarousel";
+import {Link} from "react-router-dom";
 
 type WineCardProps = {
   wine: Wine;
@@ -9,18 +10,20 @@ type WineCardProps = {
 
 export const WineCard = ({ wine }: WineCardProps) => {
   const cheapest = wine.best_price;
-
+  const offers = (wine as any).offers ?? [];
 
   return (
     <div className="flex border border-black rounded-md overflow-hidden bg-white h-full">
       {/* left: placeholder image (no real image from backend yet) */}
       <div className="w-32 sm:w-40">
-        <WineImageCarousel name={wine.name} offers={wine.offers} />
+        <WineImageCarousel wine={wine} />
       </div>
 
 
       {/* right: info */}
-      <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between">
+      <Link to={`/wines/${wine.id}`}
+        className="flex-1 p-3 sm:p-4 flex flex-col justify-between hover:bg-slate-50"
+      >
         <div className="flex justify-between gap-4">
           <div className="flex flex-col gap-0.5">
             <span className="font-semibold text-sm sm:text-base text-gray-900">
@@ -57,26 +60,29 @@ export const WineCard = ({ wine }: WineCardProps) => {
             Best price: {cheapest.toFixed(2)} zł
            </div>
           )}
-          {wine.offers.map((offer) => (
-            <div key={`${offer.shop_name}-${offer.shop_url}`} className="flex gap-1 items-center">
-              <span className="text-gray-700">{offer.shop_name}</span>
-              <span>{offer.price.toFixed(2)} zł</span>
-              <a
-                href={offer.shop_url}
-                target="_blank"
-                rel="noreferrer"
-                className="ml-auto text-[10px] sm:text-xs text-indigo-600 hover:underline"
-              >
-                Go to shop
-              </a>
-            </div>
-          ))}
-
-          {wine.offers.length === 0 && (
+          {offers.length === 0 ? (
             <div className="text-gray-500">No offers available</div>
-          )}
+          ) : (
+            offers.map(
+              (offer: { shop_name: string; shop_url: string; price: number }) => (
+                <div key={`${offer.shop_name}-${offer.shop_url}`}
+                     className="flex gap-1 items-center"
+                     onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="text-gray-700">{offer.shop_name}</span>
+                  <span>{offer.price.toFixed(2)} zł</span>
+                  <a
+                    href={offer.shop_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ml-auto text-[10px] sm:text-xs text-indigo-600 hover:underline"
+                  >
+                    Go to shop
+                  </a>
+            </div>
+          ),))}
         </div>
-      </div>
+      </Link>
     </div>
   );
 };

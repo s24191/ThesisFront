@@ -1,18 +1,22 @@
-import type { FC, ChangeEvent } from "react";
+import {type FC, type ChangeEvent, useMemo} from "react";
 import { useEffect, useState } from "react";
 import type { WineFilters } from "../api";
 import { fetchCountries, fetchRegions } from "../api";
 
 interface WineFiltersBarProps {
+  value: WineFilters;
   onChange: (filters: WineFilters) => void;
 }
 
-export const WineFiltersBar: FC<WineFiltersBarProps> = ({ onChange }) => {
-  const [filters, setFilters] = useState<WineFilters>({});
+export const WineFiltersBar: FC<WineFiltersBarProps> = ({ value, onChange }) => {
+  const [filters, setFilters] = useState<WineFilters>(value);
   const [countries, setCountries] = useState<string[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
-
  useEffect(() => {
+    setFilters(value);
+  }, [value]);
+
+  useEffect(() => {
     fetchCountries().then(setCountries).catch(() => setCountries([]));
   }, []);
 
@@ -48,7 +52,10 @@ export const WineFiltersBar: FC<WineFiltersBarProps> = ({ onChange }) => {
   const handleRegionChange = (e: ChangeEvent<HTMLSelectElement>) => {
     updateFilters({ region: e.target.value || undefined });
   };
-
+  const uniqueRegions = useMemo(
+    () => Array.from(new Set(regions)),
+    [regions],
+  );
   return (
     <div className="mb-4 flex flex-wrap items-center gap-3">
       {/* search */}
@@ -104,7 +111,7 @@ export const WineFiltersBar: FC<WineFiltersBarProps> = ({ onChange }) => {
           <option value="">
             {filters.country ? "All regions" : "Select country first"}
           </option>
-          {regions.map((r) => (
+          {uniqueRegions.map((r) => (
             <option key={r} value={r}>
               {r}
             </option>

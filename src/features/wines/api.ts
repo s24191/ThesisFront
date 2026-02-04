@@ -1,4 +1,4 @@
-import type {Wine} from "./types";
+import type {Wine, WineComment} from "./types";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -47,4 +47,27 @@ export async function fetchRegions(country?: string): Promise<string[]> {
   );
   if (!res.ok) throw new Error("Failed to load regions");
   return (await res.json()) as string[];
+}
+
+export async function fetchWineComments(wineId: number): Promise<WineComment[]> {
+  const res = await fetch(`${API_URL}/wines/${wineId}/comments`);
+  if (!res.ok) throw new Error("Failed to load comments");
+  return res.json();
+}
+
+export async function createWineComment(
+  wineId: number,
+  data: { rating: number; text: string },
+  token: string,
+): Promise<WineComment> {
+  const res = await fetch(`${API_URL}/wines/${wineId}/comments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to add comment");
+  return res.json();
 }

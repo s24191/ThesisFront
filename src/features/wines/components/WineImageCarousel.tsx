@@ -1,54 +1,39 @@
 import React, { useMemo, useState } from "react";
-
-type WineOffer = {
-  shop_name: string;
-  shop_url: string;
-  price: number;
-  image_url?: string | null;
-};
+import type {Wine} from "@/features/wines/types.ts";
 
 type Props = {
-  name: string;
-  offers: WineOffer[];
+  wine: Wine;
   className?: string;
 };
 
-const FALLBACK =
-  "https://via.placeholder.com/240x360?text=No+Image";
 
-export const WineImageCarousel: React.FC<Props> = ({
-  name,
-  offers,
-  className = "",
-}) => {
+export const WineImageCarousel: React.FC<Props> = ({ wine, className }) => {
+  const offers = (wine as any).offers ?? [];
+
   const images = useMemo(
     () =>
       Array.from(
         new Set(
           offers
-            .map((o) => o.image_url)
-            .filter((url): url is string => !!url)
+            .map((o: { image_url?: string | null }) => o.image_url)
+            .filter((u: any): u is string => !!u),
         )
       ),
     [offers]
   );
 
-  const [index, setIndex] = useState(0);
-  const [hoverZone, setHoverZone] = useState<"left" | "right" | null>(null);
+  const FALLBACK =
+    "https://via.placeholder.com/240x360?text=No+Image";
 
   if (images.length === 0) {
     return (
-      <div
-        className={`relative w-full aspect-[2/3] overflow-hidden ${className}`}
-      >
-        <img
-          src={FALLBACK}
-          alt={name}
-          className="h-full w-full object-cover"
-        />
+      <div className="relative w-full aspect-[2/3] overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-400">
+        No image
       </div>
     );
   }
+  const [index, setIndex] = useState(0);
+  const [hoverZone, setHoverZone] = useState<"left" | "right" | null>(null);
 
   const goPrev = () =>
     setIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
@@ -87,8 +72,9 @@ export const WineImageCarousel: React.FC<Props> = ({
       onMouseLeave={handleMouseLeave}
     >
       <img
+        // @ts-ignore
         src={images[index]}
-        alt={`${name} image ${index + 1} of ${images.length}`}
+        alt={`${wine.name} image ${index + 1} of ${images.length}`}
         className="h-full w-full object-cover"
         loading="lazy"
         onError={(e) => {

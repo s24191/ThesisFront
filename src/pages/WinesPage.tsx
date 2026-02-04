@@ -3,44 +3,74 @@ import { fetchWines, type WineFilters  } from "../features/wines/api";
 import type {Wine} from "../features/wines/types";
 import { WineList } from "../features/wines/components/WineList";
 import { WineFiltersBar } from "@/features/wines/components/WineFiltersBar";
+import {useSearchParams} from "react-router-dom";
 
 export const WinesPage: React.FC = () => {
     const [wines, setWines] = useState<Wine[]>([]);
-    const [filters, setFilters] = useState<WineFilters>({});
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [filters, setFilters] = useState<WineFilters>(() => ({
+      search: searchParams.get("search") ?? undefined,   // uses `search`
+      sort: (searchParams.get("sort") as WineFilters["sort"]) ?? undefined,
+      country: searchParams.get("country") ?? undefined,
+      region: searchParams.get("region") ?? undefined,
+    }));
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(25);
-    const loadWines = async (f: WineFilters) => {
-        try {
-            setIsLoading(true);
-            setError(null);
-            const data = await fetchWines(f);
-            setWines(data);
-        } catch (e: any) {
-            setError(e.message ?? "Failed to load wines");
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
-    useEffect(() => {
-        loadWines({
-            ...filters,
-            page,
-            pageSize,
-        });
-    }, [filters, page, pageSize]);
+    const [page, setPage] = useState<number>(() => {
+        const p = Number(searchParams.get("page"));
+        return Number.isFinite(p) && p > 0 ? p : 1;
+    });
+
+    const [pageSize, setPageSize] = useState<number>(() => {
+        const ps = Number(searchParams.get("pageSize"));
+        return Number.isFinite(ps) && ps > 0 ? ps : 25;
+    });
+
+  const loadWines = async (f: WineFilters) => {
+    try {
+        setIsLoading(true);
+        setError(null);
+        const data = await fetchWines(f);
+        setWines(data);
+    } catch (e: any) {
+        setError(e.message ?? "Failed to load wines");
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (filters.search) next.set("search", filters.search);
+    if (filters.sort) next.set("sort", filters.sort);
+    if (filters.country) next.set("country", filters.country);
+    if (filters.region) next.set("region", filters.region);
+    next.set("page", String(page));
+    next.set("pageSize", String(pageSize));
+    setSearchParams(next, { replace: true });
+  }, [filters, page, pageSize, setSearchParams]);
+
+  useEffect(() => {
+    loadWines({
+      ...filters,
+      page,
+      pageSize,
+    });
+  }, [filters, page, pageSize]);
 
 
     return (
         <div className="max-w-6xl mx-auto px-4 py-6">
             <h1 className="text-2xl font-semibold mb-4">Wines</h1>
 
-            <WineFiltersBar onChange={(f) => {
-                setPage(1);        // reset page when filters change
+            <WineFiltersBar
+              value={filters}
+              onChange={(f) => {
+                setPage(1);
                 setFilters(f);
-            }}/>
+              }}
+            />
 
             {/* page size + pager */}
             <div className="mt-4 mb-2 flex items-center justify-between gap-4">
