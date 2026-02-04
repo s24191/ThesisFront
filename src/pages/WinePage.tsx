@@ -1,7 +1,11 @@
 import React from "react";
 import {useParams} from "react-router-dom";
+import { WineComments } from "@/features/wines/components/WineComments.tsx";
+import {WineRatingSummary} from "@/features/wines/components/WineRatingSummary.tsx";
+import { useAuthStore } from "@/store/authStore.ts";
+import {FollowWineButton} from "@/features/wines/components/FollowWineButton.tsx";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 type WineOffer = {
   shop_name: string;
@@ -172,6 +176,7 @@ const WineImageCarousel: React.FC<{ wine: Wine }> = ({ wine }) => {
 };
 
 // --------- Main page component ---------
+type RatingBucket = { rating: number; count: number };
 
 export const WinePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -181,6 +186,9 @@ export const WinePage: React.FC = () => {
   const [similar, setSimilar] = React.useState<SimilarWine[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [ratingSummary, setRatingSummary] = React.useState<RatingBucket[]>([]);
+  const token = useAuthStore((s) => s.token);
+  const isLoggedIn = !!token;
 
   React.useEffect(() => {
     if (!wineId) return;
@@ -192,8 +200,8 @@ export const WinePage: React.FC = () => {
 
 
         const [wineRes, similarRes] = await Promise.all([
-          fetch(`${API_BASE}/wines/${wineId}/detail`),
-          fetch(`${API_BASE}/wines/${wineId}/similar`),
+          fetch(`${API_URL}/wines/${wineId}/detail`),
+          fetch(`${API_URL}/wines/${wineId}/similar`),
         ]);
 
         if (!wineRes.ok) {
@@ -218,6 +226,23 @@ export const WinePage: React.FC = () => {
 
     load();
   }, [wineId]);
+
+  React.useEffect(() => {
+  if (!wineId) return;
+
+  const loadSummary = async () => {
+    try {
+      const res = await fetch(`${API_URL}/wines/${wineId}/rating-summary`);
+      if (!res.ok) return;
+      const data = (await res.json()) as RatingBucket[];
+      setRatingSummary(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  loadSummary();
+}, [wineId]);
 
   if (loading) {
     return <div className="p-4 text-sm">Loading…</div>;
@@ -249,11 +274,16 @@ const cheapest =
         </div>
 
         <div className="md:w-2/3 flex flex-col gap-3">
-          <h1 className="text-2xl font-semibold">{wine.name}</h1>
-          <div className="text-sm text-gray-600">
-            {wine.year && <span className="mr-2">{wine.year}</span>}
-            <span>{wine.country}</span>
-            {wine.region && <span> · {wine.region}</span>}
+          <h1 className="text-2xl font-semibold mb-2">
+            {wine.name}
+          </h1>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-gray-600">
+              {wine.year ? `${wine.year} • ` : ""}
+              {wine.country}
+              {wine.region ? `, ${wine.region}` : ""}
+            </span>
+            {wine.id && <FollowWineButton wineId={wine.id} isLoggedIn={isLoggedIn} token={token} />}
           </div>
 
           <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
@@ -409,7 +439,12 @@ const cheapest =
           </div>
         )}
       </section>
-
+      {wine && (
+        <>
+          <WineRatingSummary buckets={ratingSummary} />
+          <WineComments wineId={wine.id} />
+        </>
+      )}
     </div>
   );
 };
