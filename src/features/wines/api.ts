@@ -1,4 +1,4 @@
-import type {Wine, WineComment} from "./types";
+import type {FollowedWine, MyComment, Wine, WineComment} from "./types";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -55,6 +55,16 @@ export async function fetchWineComments(wineId: number): Promise<WineComment[]> 
   return res.json();
 }
 
+export async function fetchMyComments(token: string): Promise<MyComment[]> {
+  const res = await fetch(`${API_URL}/wines/me/comments`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load comments: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function createWineComment(
   wineId: number,
   data: { rating: number; text: string },
@@ -69,5 +79,17 @@ export async function createWineComment(
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error("Failed to add comment");
+  return res.json();
+}
+
+export async function fetchFollowedWines(token: string): Promise<FollowedWine[]> {
+  const res = await fetch(`${API_URL}/wines/me/followed`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to load followed wines: ${res.status}`);
+  }
   return res.json();
 }

@@ -8,6 +8,8 @@ import { LoginForm } from "@/features/user/Login/LoginForm";
 import { RegisterForm } from "@/features/user/Register/RegisterForm";
 import { useAuthStore } from "@/store/authStore";
 import {WinePage} from "@/pages/WinePage.tsx";
+import {MyFollowedWinesPage} from "@/pages/MyFollowedWinesPage.tsx";
+import {MyCommentsPage} from "@/pages/MyCommentsPage.tsx";
 
 export const AppRoutes: React.FC = () => {
   const fetchUser = useAuthStore((s) => s.fetchUser);
@@ -28,6 +30,9 @@ return (
             <Route path="/register" element={<RegisterForm />} />
             <Route path="/wines" element={<WinesPage />} />
             <Route path="/wines/:id" element={<WinePage />} />
+            <Route path="/me/followed-wines" element={<MyFollowedWinesPage />} />
+            <Route path="/me/comments" element={<MyCommentsPage />} />
+
           </Routes>
         </div>
       </div>

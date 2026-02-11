@@ -23,3 +23,23 @@ export type WineComment = {
   text: string;
   created_at: string;
 };
+
+export type MyComment = {
+  id: number;
+  wine_id: number;
+  wine_name: string;
+  rating: number;
+  text: string;
+  created_at: string;
+};
+
+export type FollowedWine = {
+  id: number;
+  name: string;
+  country: string;
+  region?: string | null;
+  rating?: number | null;
+  ratings_count?: number | null;
+  best_price?: number | null;
+  image_url?: string | null;
+};

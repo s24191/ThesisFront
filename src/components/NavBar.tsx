@@ -1,93 +1,39 @@
-import React, { useState, useRef, useEffect } from "react"
-import { Link, useNavigate } from "react-router-dom"
-import { User as UserIcon } from "lucide-react"
-import { useAuthStore } from "@/store/authStore";
-
+import React, { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { User as UserIcon } from "lucide-react";
+import { AccountMenu } from "@/components/AccountMenu";
 
 export const NavBar: React.FC = () => {
-  const user = useAuthStore(s => s.user)
-  const logout = useAuthStore(s => s.logout)
-  const navigate = useNavigate()
-
-  const [open, setOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false)
+        setOpen(false);
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
-
-  const onLogout = () => {
-    logout()
-    setOpen(false)
-    navigate("/")
-  }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <nav className="w-full bg-gray-800 px-6 py-4 flex justify-between items-center text-white relative">
-      <Link to="/" className="text-xl font-bold">
-        Wine Aggregator
-      </Link>
+    <nav className="bg-gray-900 text-white">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+        <Link to="/" className="font-semibold text-lg">
+          Wine Aggregator
+        </Link>
 
-      <div className="relative" ref={menuRef}>
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="p-2 rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <UserIcon size={24} />
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setOpen((o) => !o)}
+            className="p-2 rounded-full hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <UserIcon className="w-5 h-5" />
+          </button>
 
-        {open && (
-          <div className="absolute right-0 mt-2 w-48 bg-white text-gray-900 rounded-md shadow-lg z-10 overflow-hidden">
-            {!user ? (
-              <>
-                <Link
-                  to="/login"
-                  className="block px-4 py-2 hover:bg-gray-100"
-                  onClick={() => setOpen(false)}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="block px-4 py-2 hover:bg-gray-100"
-                  onClick={() => setOpen(false)}
-                >
-                  Register
-                </Link>
-              </>
-            ) : (
-              <>
-                <div className="px-4 py-2 border-b border-gray-200">
-                  <div className="text-xs text-gray-500">Signed in as</div>
-                  <div className="text-sm font-semibold truncate">
-                    {user.username}
-                  </div>
-                </div>
-
-                <Link
-                  to="/settings"
-                  className="block px-4 py-2 text-sm hover:bg-gray-100"
-                  onClick={() => setOpen(false)}
-                >
-                  Settings
-                </Link>
-
-                <button
-                  onClick={onLogout}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                >
-                  Logout
-                </button>
-              </>
-            )}
-          </div>
-        )}
+          {open && <AccountMenu onClose={() => setOpen(false)} />}
+        </div>
       </div>
     </nav>
   );
