@@ -1,4 +1,5 @@
-import type {FollowedWine, MyComment, Wine, WineComment} from "./types";
+import type {FollowedWine, MyComment, Wine, WineComment, WineNote, WineTasteSummary, WineTasteVote} from "./types";
+import {api} from "@/lib/api.ts";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -92,4 +93,80 @@ export async function fetchFollowedWines(token: string): Promise<FollowedWine[]>
     throw new Error(`Failed to load followed wines: ${res.status}`);
   }
   return res.json();
+}
+
+export async function fetchTasteSummary(wineId: number): Promise<WineTasteSummary> {
+  const res = await fetch(`${API_URL}/wines/${wineId}/taste-summary`);
+  if (!res.ok) {
+    throw new Error(`Failed to load taste summary: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function fetchMyTasteVote(
+  wineId: number,
+  token: string
+): Promise<WineTasteVote | null> {
+  const res = await fetch(`${API_URL}/wines/${wineId}/taste/me`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to load my taste vote: ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data ?? null;
+}
+
+export async function upsertMyTasteVote(
+  wineId: number,
+  token: string,
+  payload: WineTasteVote
+): Promise<WineTasteVote> {
+  const res = await fetch(`${API_URL}/wines/${wineId}/taste`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to save taste vote: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function fetchWineNotes(
+  wineId: number,
+  includeUserState: boolean
+): Promise<WineNote[]> {
+  const path = includeUserState
+    ? `/wines/${wineId}/notes/me`
+    : `/wines/${wineId}/notes`;
+
+  const res = await api.get<{ notes: WineNote[] }>(path);
+  return res.data.notes;
+}
+
+export async function addWineNote(
+  wineId: number,
+  text: string
+): Promise<WineNote> {
+  const res = await api.post<WineNote>(`/wines/${wineId}/notes`, { text });
+  return res.data;
+}
+
+export async function toggleWineNote(
+  wineId: number,
+  noteId: number
+): Promise<WineNote> {
+  const res = await api.post<WineNote>(
+    `/wines/${wineId}/notes/${noteId}/toggle`,
+    {}
+  );
+  return res.data;
 }

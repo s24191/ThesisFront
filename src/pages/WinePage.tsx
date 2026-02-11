@@ -4,6 +4,8 @@ import { WineComments } from "@/features/wines/components/WineComments.tsx";
 import {WineRatingSummary} from "@/features/wines/components/WineRatingSummary.tsx";
 import { useAuthStore } from "@/store/authStore.ts";
 import {FollowWineButton} from "@/features/wines/components/FollowWineButton.tsx";
+import { WineTasteSection } from "@/features/wines/components/WineTasteSection.tsx";
+import { WineNotesSection } from "@/features/wines/components/WineNotesSection";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
@@ -42,41 +44,11 @@ type SimilarWine = {
 // --------- Static  for now ---------
 
 const STATIC_TASTE = {
-  body: 70,      // Light–Bold
-  tannin: 40,    // Smooth–Tannic
-  sweetness: 20, // Dry–Sweet
-  acidity: 60,   // Soft–Acidic
-  notes: ["black cherry", "plum", "vanilla", "oak"],
   food: ["grilled steak", "hard cheese", "roast lamb"],
 };
 
 
 // --------- Small UI components ---------
-
-const TasteSlider: React.FC<{
-  labelLeft: string;
-  labelRight: string;
-  value: number;
-}> = ({ labelLeft, labelRight, value }) => {
-  const clamped = Math.max(0, Math.min(100, value));
-  return (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between text-xs text-gray-600">
-        <span>{labelLeft}</span>
-        <span>{labelRight}</span>
-      </div>
-      <div className="relative h-1.5 w-full rounded-full bg-neutral-100">
-        <div
-          className="absolute top-0 h-1.5 rounded-full bg-red-700 transition-all"
-          style={{
-            left: `${clamped / 2}%`,
-            width: "30%",
-          }}
-        />
-      </div>
-    </div>
-  );
-};
 
 const WineImageCarousel: React.FC<{ wine: Wine }> = ({ wine }) => {
   const images = React.useMemo(
@@ -361,36 +333,8 @@ const cheapest =
 
       {/* Taste profile */}
       <section className="mt-8 border-t pt-6">
-        <h2 className="text-lg font-semibold mb-3">
-          What does this wine taste like?
-        </h2>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <TasteSlider labelLeft="Light" labelRight="Bold" value={STATIC_TASTE.body} />
-          <TasteSlider
-            labelLeft="Smooth"
-            labelRight="Tannic"
-            value={STATIC_TASTE.tannin}
-          />
-          <TasteSlider labelLeft="Dry" labelRight="Sweet" value={STATIC_TASTE.sweetness} />
-          <TasteSlider labelLeft="Soft" labelRight="Acidic" value={STATIC_TASTE.acidity} />
-        </div>
-
-        <p className="mt-3 text-sm text-gray-700">
-          Medium‑bodied, quite smooth, dry and fairly acidic.
-        </p>
-
-        <div className="mt-4 flex flex-wrap gap-2 text-xs">
-          {STATIC_TASTE.notes.map((note) => (
-            <span
-              key={note}
-              className="rounded-full bg-rose-50 px-3 py-1 text-rose-900"
-            >
-              {note}
-            </span>
-          ))}
-        </div>
-
+        <WineTasteSection wineId={wine.id} />
+        <WineNotesSection wineId={wine.id} />
         <div className="mt-4">
           <h3 className="text-sm font-semibold mb-1">Food pairings</h3>
           <div className="flex flex-wrap gap-2 text-xs">
