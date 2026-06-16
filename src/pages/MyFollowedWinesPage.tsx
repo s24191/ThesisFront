@@ -59,11 +59,11 @@ export const MyFollowedWinesPage: React.FC = () => {
               id: wine.id,
               name: wine.name,
               country: wine.country,
-              region: wine.region ?? undefined,
-              rating: wine.rating ?? undefined,
-              ratings_count: wine.ratings_count ?? undefined,
-              best_price: wine.best_price ?? undefined,
-              image_url: wine.image_url ?? undefined,
+              region: wine.region ?? null,
+              rating: wine.rating ?? null,
+              ratings_count: wine.ratings_count ?? null,
+              best_price: wine.best_price ?? null,
+              image_url: wine.image_url ?? null,
             }}
           />
         ))}
