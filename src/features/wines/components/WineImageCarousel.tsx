@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
-import type {Wine} from "@/features/wines/types.ts";
+import type {WineCardWine} from "@/features/wines/types.ts";
 
 type Props = {
-  wine: Wine;
+  wine: WineCardWine
   className?: string;
 };
 

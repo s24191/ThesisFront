@@ -1,9 +1,9 @@
-import type { Wine } from "../types";
+import type {WineCardWine} from "../types";
 import { WineImageCarousel } from "./WineImageCarousel";
 import {Link} from "react-router-dom";
 
 type WineCardProps = {
-  wine: Wine;
+  wine: WineCardWine
 };
 
 

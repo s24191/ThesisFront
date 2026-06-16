@@ -15,6 +15,18 @@ export interface Wine {
   offers: WineOffer[];
 }
 
+export type WineCardWine = {
+  id: number;
+  name: string;
+  country: string;
+  region: string | null;
+  rating: number | null;
+  ratings_count: number | null;
+  best_price: number | null;
+  image_url?: string | null;
+  offers?: (WineOffer & { image_url?: string | null })[];
+};
+
 export type WineComment = {
   id: number;
   user_id: string;
