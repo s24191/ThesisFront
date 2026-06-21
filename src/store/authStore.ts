@@ -17,7 +17,7 @@ type AuthState = {
   fetchUser: () => Promise<void>;
 };
 
-const API_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
   token: typeof window !== "undefined" ? localStorage.getItem("token") : null,

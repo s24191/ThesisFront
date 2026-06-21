@@ -1,7 +1,7 @@
 import type {FollowedWine, MyComment, Wine, WineComment, WineNote, WineTasteSummary, WineTasteVote} from "./types";
 import {api} from "@/lib/api.ts";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 
 export interface WineFilters {
   search?: string;
