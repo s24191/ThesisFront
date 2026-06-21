@@ -34,6 +34,7 @@ export const FollowWineButton: React.FC<Props> = ({ wineId, isLoggedIn, token })
     loadFollow();
   }, [wineId, isLoggedIn, token]);
 
+
   const toggleFollow = async () => {
     if (!wineId || followState === "loading" || !isLoggedIn || !token) return;
 
