@@ -59,14 +59,21 @@ export const FollowWineButton: React.FC<Props> = ({ wineId, isLoggedIn, token })
   }
 
   return (
-    <button
-      onClick={toggleFollow}
-      disabled={followState === "loading"}
-      className="inline-flex items-center px-3 py-1 rounded-full border text-sm
-                 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white
-                 disabled:opacity-50"
-    >
-      {followState === "followed" ? "Unfollow" : "Follow"}
-    </button>
+  <button
+    type="button"
+    onClick={toggleFollow}
+    disabled={followState === "loading"}
+    className={
+      followState === "followed"
+        ? "inline-flex items-center px-3 py-1 rounded-full border text-sm bg-slate-700 text-white border-slate-900 hover:bg-slate-800 disabled:opacity-50"
+        : "inline-flex items-center px-3 py-1 rounded-full border text-sm bg-white text-slate-900 border-slate-600 hover:bg-slate-600 hover:text-white disabled:opacity-50"
+    }
+  >
+    {followState === "loading"
+      ? "Loading..."
+      : followState === "followed"
+      ? "Unfollow"
+      : "Follow"}
+  </button>
   );
 };

@@ -169,7 +169,7 @@ export const WineComments: React.FC<Props> = ({ wineId }) => {
       ) : error ? (
         <p className="text-sm text-red-600">{error}</p>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-gray-500">No reviews yet.</p>
+        <p className="text-sm text-slate-400">No reviews yet.</p>
       ) : (
         <ul className="space-y-3 text-sm">
           {myComment && (
@@ -195,20 +195,24 @@ export const WineComments: React.FC<Props> = ({ wineId }) => {
         </span>
         {!editing && (
           <>
-            <button
-              type="button"
-              className="text-indigo-600 hover:underline"
-              onClick={handleStartEdit}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              className="text-red-600 hover:underline"
-              onClick={handleDelete}
-            >
-              Delete
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex h-9 items-center rounded-full border border-slate-600 bg-white px-4 text-sm font-medium text-slate-900 transition hover:bg-slate-600 hover:text-white"
+                onClick={handleStartEdit}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                aria-label="Delete review"
+                title="Delete review"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-500/50 bg-rose-500/10 text-sm font-medium text-rose-300 transition hover:bg-rose-600 hover:text-white"
+                onClick={handleDelete}
+              >
+                <span aria-hidden="true">✕</span>
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -230,7 +234,7 @@ export const WineComments: React.FC<Props> = ({ wineId }) => {
           <button
             type="submit"
             disabled={submitting || !newText.trim()}
-            className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+            className="rounded-full border border-slate-600 bg-white px-4 py-2 text-sm text-slate-900 hover:bg-slate-600 hover:text-white"
           >
             {submitting ? "Saving…" : "Save"}
           </button>
@@ -277,14 +281,14 @@ export const WineComments: React.FC<Props> = ({ wineId }) => {
 
       <div className="mt-4">
         {!user ? (
-          <p className="text-xs text-gray-500">
+          <p className="text-sm text-slate-400">
             You must be logged in to leave a review.
           </p>
         ) : !myComment ? (
           !showForm && (
             <button
               type="button"
-              className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+              className="inline-flex items-center rounded-full border border-slate-600 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 transition hover:bg-slate-600 hover:text-white"
               onClick={handleStartNew}
             >
               Write a review
@@ -295,7 +299,7 @@ export const WineComments: React.FC<Props> = ({ wineId }) => {
         {user && showForm && (
           <form onSubmit={handleSubmit} className="mt-3 space-y-2">
             <div className="flex items-center gap-2 text-sm">
-              <label className="text-xs font-medium text-gray-700">
+              <label className="text-sm text-slate-400">
                 Your rating
               </label>
               <input
@@ -312,21 +316,21 @@ export const WineComments: React.FC<Props> = ({ wineId }) => {
               value={newText}
               onChange={(e) => setNewText(e.target.value)}
               rows={3}
-              className="w-full border rounded px-2 py-1 text-sm"
+              className="text-sm text-slate-400"
               placeholder="Write your review…"
             />
             <div className="flex gap-2">
               <button
                 type="submit"
                 disabled={submitting || !newText.trim()}
-                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                className="rounded-full border border-slate-600 bg-white px-4 py-2 text-sm text-slate-900 hover:bg-slate-600 hover:text-white"
               >
                 {submitting ? "Saving…" : myComment ? "Save changes" : "Submit review"}
               </button>
               <button
                 type="button"
                 onClick={() => setShowForm(false)}
-                className="rounded-md border px-3 py-1.5 text-xs text-gray-700"
+                className="rounded-full border border-slate-600 bg-white px-4 py-2 text-sm text-slate-900 hover:bg-slate-600 hover:text-white"
               >
                 Cancel
               </button>

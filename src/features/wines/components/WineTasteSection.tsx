@@ -197,7 +197,7 @@ export const WineTasteSection: React.FC<Props> = ({ wineId }) => {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setIsVoteOpen(false)}
-                className="px-3 py-1 rounded-md text-xs text-gray-300 hover:bg-slate-800"
+                className="px-3 py-1 rounded-md border text-xs bg-white text-slate-900 border-slate-600 hover:bg-slate-600 hover:text-white disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -207,8 +207,7 @@ export const WineTasteSection: React.FC<Props> = ({ wineId }) => {
                   setIsVoteOpen(false);
                 }}
                 disabled={saving || loadingMyVote}
-                className="px-3 py-1 rounded-md bg-slate-100 text-slate-900 text-xs
-                           hover:bg-white disabled:opacity-60"
+                className="px-3 py-1 rounded-md border text-xs bg-white text-slate-900 border-slate-600 hover:bg-slate-600 hover:text-white disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save taste vote"}
               </button>
@@ -223,8 +222,7 @@ export const WineTasteSection: React.FC<Props> = ({ wineId }) => {
         <div className="mt-3">
           <button
             onClick={() => setIsVoteOpen(true)}
-            className="inline-flex items-center px-3 py-1.5 rounded-md
-                       bg-slate-900 text-white text-sm hover:bg-slate-800"
+            className="inline-flex items-center px-3 py-1.5 rounded-md border text-sm bg-white text-slate-900 border-slate-600 hover:bg-slate-600 hover:text-white disabled:opacity-50"
           >
             Rate taste
           </button>
@@ -288,7 +286,7 @@ const UserVoteSlider: React.FC<UserVoteSliderProps> = ({
       step={1}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="flex-1"
+      className="flex-1 accent-red-700"
     />
     <span className="w-6 text-right text-xs text-gray-300">{value}</span>
   </div>

@@ -250,7 +250,7 @@ const cheapest =
             {wine.name}
           </h1>
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-gray-600">
+            <span className="text-grey-600">
               {wine.year ? `${wine.year} • ` : ""}
               {wine.country}
               {wine.region ? `, ${wine.region}` : ""}
@@ -313,7 +313,7 @@ const cheapest =
                         href={offer.shop_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="rounded-md bg-slate-900 px-3 py-1 text-xs font-medium text-white hover:bg-slate-800"
+                        className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-900 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
                       >
                         Go to shop
                       </a>
