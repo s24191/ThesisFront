@@ -12,7 +12,7 @@ import {MyFollowedWinesPage} from "@/pages/MyFollowedWinesPage.tsx";
 import {MyCommentsPage} from "@/pages/MyCommentsPage.tsx";
 import{ AdminPage} from "@/pages/AdminPage.tsx";
 import {AdminRoute} from "@/router/AdminRoute.tsx";
-
+import {AdminLookupsPage} from "@/features/admin/AdminLookupsPage.tsx";
 export const AppRoutes: React.FC = () => {
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
@@ -35,6 +35,7 @@ return (
             <Route path="/me/followed-wines" element={<MyFollowedWinesPage />} />
             <Route path="/me/comments" element={<MyCommentsPage />} />
             <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>}/>
+            <Route path="/admin/lookups" element={<AdminLookupsPage />} />
           </Routes>
         </div>
       </div>
