@@ -27,8 +27,14 @@ export function AdminLookupForm({
   onCancel,
 }: Props) {
   const singular =
-    resource === "countries" ? "country" : resource === "regions" ? "region" : "wine type"
-
+  resource === "countries"
+    ? "country"
+    : resource === "regions"
+    ? "region"
+    : resource === "wines"
+    ? "wine"
+    : "wine type"
+  
   return (
     <div className="admin-card">
       <div className="admin-card__head">

@@ -18,7 +18,31 @@ export type WineType = {
   name: string
 }
 
-export type AdminResource = "countries" | "regions" | "wine-types"
+export type Wine = {
+  id: number
+  name: string
+  year: number | null
+  alc_perc: number | null
+  capacity_ml: number | null
+
+  country_id: number | null
+  region_id: number | null
+  wine_type_id: number | null
+  taste_profile_id: number | null
+
+  country: string | null
+  region: string | null
+  wine_type: string | null
+  taste_profile: string | null
+
+  //later
+  taste_votes_count?: number | null
+  taste_average?: number | null
+  comments_count?: number | null
+  rating_average?: number | null
+}
+
+export type AdminResource = "countries" | "regions" | "wine-types" | "wines"
 
 type RequestOptions = RequestInit & {
   bodyJson?: unknown
@@ -106,4 +130,50 @@ export const adminLookupsApi = {
     adminRequest<void>(`/admin/wine-types/${id}`, {
       method: "DELETE",
     }),
+
+  listWines: (params?: { limit?: number; offset?: number }) => {
+    const search = new URLSearchParams()
+    if (params?.limit != null) search.set("limit", String(params.limit))
+    if (params?.offset != null) search.set("offset", String(params.offset))
+    return adminRequest(`/admin/wines${search.toString() ? `?${search}` : ""}`)
+  },
+
+  createWine: (payload: {
+    name: string
+    year?: number | null
+    alc_perc?: number | null
+    capacity_ml?: number | null
+    country_id?: number | null
+    region_id?: number | null
+    wine_type_id?: number | null
+    taste_profile_id?: number | null
+  }) =>
+    adminRequest<Wine>("/admin/wines", {
+      method: "POST",
+      bodyJson: payload,
+    }),
+
+  updateWine: (
+    id: number,
+    payload: {
+      name?: string
+      year?: number | null
+      alc_perc?: number | null
+      capacity_ml?: number | null
+      country_id?: number | null
+      region_id?: number | null
+      wine_type_id?: number | null
+      taste_profile_id?: number | null
+    },
+  ) =>
+    adminRequest<Wine>(`/admin/wines/${id}`, {
+      method: "PATCH",
+      bodyJson: payload,
+    }),
+
+  deleteWine: (id: number) =>
+    adminRequest<void>(`/admin/wines/${id}`, {
+      method: "DELETE",
+    }),
+
 }

@@ -9,6 +9,7 @@ const OPTIONS: { value: AdminResource; label: string }[] = [
   { value: "countries", label: "Countries" },
   { value: "regions", label: "Regions" },
   { value: "wine-types", label: "Wine types" },
+  { value: "wines", label: "Wines" },
 ]
 
 export function AdminLookupSwitcher({ value, onChange }: Props) {

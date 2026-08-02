@@ -1,3 +1,79 @@
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.admin-table th:nth-child(even),
+.admin-table td:nth-child(even) {
+  background-color: #f0f0f0;
+}
+
+.admin-table thead th {
+  font-weight: 600;
+  border-bottom: 1px solid #dfdbd3;
+}
+
+.admin-table__link {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.admin-table__link:hover {
+  text-decoration: underline;
+}
+
+.admin-table__link:visited {
+  color: #7c3aed;
+}
+
+.admin-pagination {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #6b7280;
+}
+
+.admin-pagination button {
+  appearance: none;
+  border: 1px solid #cfc8be;
+  background: #f2efe9;
+  color: #1f2937;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font: inherit;
+}
+
+.admin-pagination button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.admin-table-wrap {
+  position: relative;
+}
+
+.admin-table-wrap.is-loading::after {
+  content: "Loading…";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 247, 244, 0.8);
+  color: #475569;
+  font-weight: 500;
+  pointer-events: none;
+}
+
 .admin-lookups-page {
   min-height: 100vh;
   padding: 24px;
@@ -46,7 +122,7 @@
 
 .admin-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.2fr);
   gap: 20px;
   align-items: stretch;
 }

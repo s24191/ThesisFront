@@ -5,6 +5,7 @@ import {
   type Country,
   type Region,
   type WineType,
+  type Wine,
 } from "@/features/admin/adminLookupsApi"
 import { AdminLookupSwitcher } from "@/features/admin/components/AdminLookupSwitcher"
 import { AdminLookupList } from "@/features/admin/components/AdminLookupList"
@@ -12,7 +13,7 @@ import { AdminLookupForm } from "@/features/admin/components/AdminLookupForm"
 import { useAuthStore } from "@/store/authStore"
 import "@/features/admin/admin-lookups.css"
 
-type LookupItem = Country | Region | WineType
+type LookupItem = Country | Region | WineType | Wine
 
 export function AdminLookupsPage() {
   const user = useAuthStore((state) => state.user)
@@ -26,6 +27,12 @@ export function AdminLookupsPage() {
   const [editingItem, setEditingItem] = useState<LookupItem | null>(null)
   const [editingName, setEditingName] = useState("")
   const [regionCountryId, setRegionCountryId] = useState<number | "">("")
+
+  const [winePage, setWinePage] = useState(1)
+  const pageSize = 50
+  const [wineTotal, setWineTotal] = useState(0)
+
+  const totalPages = Math.ceil(wineTotal / pageSize)
 
   async function loadCountries() {
     const data = await adminLookupsApi.listCountries()
@@ -47,20 +54,29 @@ export function AdminLookupsPage() {
         ])
         setItems(regions)
         setCountries(countriesData)
-      } else {
+      } else if (active === "wine-types") {
         setItems(await adminLookupsApi.listWineTypes())
+      } else if (active === "wines") {
+        const data = await
+          adminLookupsApi.listWines({
+          limit: pageSize,
+          offset: (winePage - 1) * pageSize,
+        })
+
+        setItems(data.items)
+        setWineTotal(data.total)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data")
     } finally {
       setLoading(false)
     }
-  }
+}
 
   useEffect(() => {
     loadActive()
     resetForm()
-  }, [active])
+  }, [active, winePage])
 
   function resetForm() {
     setEditingItem(null)
@@ -118,6 +134,19 @@ export function AdminLookupsPage() {
         }
       }
 
+      if (active === "wines") {
+        //for now only name
+        if (editingItem) {
+          await adminLookupsApi.updateWine(editingItem.id, {
+            name: editingName,
+          })
+        } else {
+          await adminLookupsApi.createWine({
+            name: editingName,
+          })
+        }
+      }
+
       await loadActive()
       resetForm()
     } catch (err) {
@@ -136,8 +165,10 @@ export function AdminLookupsPage() {
         await adminLookupsApi.deleteCountry(item.id)
       } else if (active === "regions") {
         await adminLookupsApi.deleteRegion(item.id)
-      } else {
+      } else if (active === "wine-types") {
         await adminLookupsApi.deleteWineType(item.id)
+      } else if (active === "wines") {
+        await adminLookupsApi.deleteWine(item.id)
       }
 
       await loadActive()
@@ -169,30 +200,55 @@ export function AdminLookupsPage() {
 
       <AdminLookupSwitcher value={active} onChange={setActive} />
 
-      {error && <div className="admin-error">{error}</div>}
-
       <div className="admin-grid">
-        <AdminLookupList
-          resource={active}
-          items={items}
-          countries={countries}
-          loading={loading}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        <div className="admin-list-wrap">
+          <AdminLookupList
+            resource={active}
+            items={items}
+            countries={countries}
+            loading={loading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
 
-        <AdminLookupForm
-          resource={active}
-          countries={countries}
-          editingName={editingName}
-          setEditingName={setEditingName}
-          regionCountryId={regionCountryId}
-          setRegionCountryId={setRegionCountryId}
-          isEditing={!!editingItem}
-          onSubmit={handleSubmit}
-          onCancel={resetForm}
-        />
+          {active === "wines" && totalPages > 1 && (
+            <div className="admin-pagination">
+              <button
+                type="button"
+                onClick={() => setWinePage((p) => Math.max(1, p - 1))}
+                disabled={winePage === 1}
+              >
+                Prev
+              </button>
+              <span>
+                Page {winePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setWinePage((p) => Math.min(totalPages, p + 1))}
+                disabled={winePage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="admin-form-wrap">
+          <AdminLookupForm
+            resource={active}
+            countries={countries}
+            editingName={editingName}
+            setEditingName={setEditingName}
+            regionCountryId={regionCountryId}
+            setRegionCountryId={setRegionCountryId}
+            isEditing={!!editingItem}
+            onSubmit={handleSubmit}
+            onCancel={resetForm}
+          />
+        </div>
       </div>
+      {error && <div className="admin-error">{error}</div>}
     </section>
   )
 }
