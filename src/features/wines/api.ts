@@ -7,7 +7,27 @@ export interface WineFilters {
   search?: string;
   country?: string;
   region?: string;
-  sort?: "rating-desc" | "price-asc" | "price-desc";
+  sort?:
+    | "year-desc"
+    | "year-asc"
+    | "alcohol-desc"
+    | "alcohol-asc"
+    | "volume-desc"
+    | "volume-asc"
+    | "comments-desc"
+    | "comments-asc"
+    | "rating-desc"
+    | "rating-asc"
+    | "body-desc"
+    | "body-asc"
+    | "tannin-desc"
+    | "tannin-asc"
+    | "sweetness-desc"
+    | "sweetness-asc"
+    | "acidity-desc"
+    | "acidity-asc"
+    | "price-desc"
+    | "price-asc";
   page?: number;
   pageSize?: number;
 }
