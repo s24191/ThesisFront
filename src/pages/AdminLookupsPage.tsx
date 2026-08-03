@@ -1,61 +1,47 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
+import {
+  adminLookupsApi,
+  type AdminResource,
+  type Country,
+  type Region,
+  type WineType,
+  type Wine, type TasteProfile,
+} from "@/features/admin/adminLookupsApi.ts"
+import { AdminLookupSwitcher } from "@/features/admin/components/AdminLookupSwitcher.tsx"
+import { AdminLookupList } from "@/features/admin/components/AdminLookupList.tsx"
+import { AdminLookupForm } from "@/features/admin/components/AdminLookupForm.tsx"
+import { useAuthStore } from "@/store/authStore.ts"
+import {AdminWineForm} from "@/features/admin/components/AdminWineForm.tsx";
 
-type AdminResource = "countries" | "regions" | "wine-types"
-
-type Country = {
-  id: number
-  name: string
-}
-
-type Region = {
-  id: number
-  name: string
-  country_id: number
-}
-
-type WineType = {
-  id: number
-  name: string
-}
-
-type LookupItem = Country | Region | WineType
-
-const API_BASE = import.meta.env.VITE_API_URL
+type LookupItem = Country | Region | WineType | Wine
 
 export function AdminLookupsPage() {
+  const user = useAuthStore((state) => state.user)
+
   const [active, setActive] = useState<AdminResource>("countries")
   const [items, setItems] = useState<LookupItem[]>([])
   const [countries, setCountries] = useState<Country[]>([])
+  const [regions, setRegions] = useState<Region[]>([])
+  const [wineTypes, setWineTypes] = useState<WineType[]>([])
+  const [tasteProfiles, setTasteProfiles] = useState<TasteProfile[]>([]);
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [editingItem, setEditingItem] = useState<LookupItem | null>(null)
-  const [name, setName] = useState("")
+  const [editingName, setEditingName] = useState("")
   const [regionCountryId, setRegionCountryId] = useState<number | "">("")
 
-  const title = useMemo(() => {
-    if (active === "countries") return "Countries"
-    if (active === "regions") return "Regions"
-    return "Wine types"
-  }, [active])
+  const [winePage, setWinePage] = useState(1)
+  const pageSize = 50
+  const [wineTotal, setWineTotal] = useState(0)
 
-  async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(options?.headers || {}),
-      },
-    })
+  const totalPages = Math.ceil(wineTotal / pageSize)
 
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(text || `Request failed: ${res.status}`)
-    }
 
-    if (res.status === 204) return null as T
-    return res.json()
+  async function loadCountries() {
+    const data = await adminLookupsApi.listCountries()
+    setCountries(data)
+    return data
   }
 
   async function loadActive() {
@@ -64,18 +50,38 @@ export function AdminLookupsPage() {
 
     try {
       if (active === "countries") {
-        const data = await fetchJson<Country[]>("/admin/countries")
-        setItems(data)
+        setItems(await adminLookupsApi.listCountries())
       } else if (active === "regions") {
-        const [regions, countriesData] = await Promise.all([
-          fetchJson<Region[]>("/admin/regions"),
-          fetchJson<Country[]>("/admin/countries"),
+        const [regionsData, countriesData] = await Promise.all([
+          adminLookupsApi.listRegions(),
+          loadCountries(),
         ])
-        setItems(regions)
+        setItems(regionsData)
+        setRegions(regionsData)
         setCountries(countriesData)
-      } else {
-        const data = await fetchJson<WineType[]>("/admin/wine-types")
-        setItems(data)
+      } else if (active === "wine-types") {
+        const wineTypesData = await adminLookupsApi.listWineTypes()
+        setItems(wineTypesData)
+        setWineTypes(wineTypesData)
+      } else if (active === "wines") {
+        const [countriesData, regionsData, wineTypesData, tasteProfilesData, winesData] =
+          await Promise.all([
+            adminLookupsApi.listCountries(),
+            adminLookupsApi.listRegions(),
+            adminLookupsApi.listWineTypes(),
+            adminLookupsApi.listTasteProfiles(),
+            adminLookupsApi.listWines({
+              limit: pageSize,
+              offset: (winePage - 1) * pageSize,
+            }),
+          ])
+
+        setCountries(countriesData)
+        setRegions(regionsData)
+        setWineTypes(wineTypesData)
+        setTasteProfiles(tasteProfilesData)
+        setItems(winesData.items)
+        setWineTotal(winesData.total)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data")
@@ -87,17 +93,17 @@ export function AdminLookupsPage() {
   useEffect(() => {
     loadActive()
     resetForm()
-  }, [active])
+  }, [active, winePage])
 
   function resetForm() {
     setEditingItem(null)
-    setName("")
+    setEditingName("")
     setRegionCountryId("")
   }
 
-  function startEdit(item: LookupItem) {
+  function handleEdit(item: LookupItem) {
     setEditingItem(item)
-    setName(item.name)
+    setEditingName(item.name)
 
     if (active === "regions" && "country_id" in item) {
       setRegionCountryId(item.country_id)
@@ -113,56 +119,62 @@ export function AdminLookupsPage() {
     try {
       if (active === "countries") {
         if (editingItem) {
-          await fetchJson(`/admin/countries/${editingItem.id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ name }),
+          await adminLookupsApi.updateCountry(editingItem.id, { name: editingName })
+        } else {
+          await adminLookupsApi.createCountry({ name: editingName })
+        }
+      }
+
+      if (active === "regions") {
+        if (!regionCountryId) {
+          throw new Error("Country is required")
+        }
+
+        if (editingItem) {
+          await adminLookupsApi.updateRegion(editingItem.id, {
+            name: editingName,
+            country_id: Number(regionCountryId),
           })
         } else {
-          await fetchJson("/admin/countries", {
-            method: "POST",
-            body: JSON.stringify({ name }),
+          await adminLookupsApi.createRegion({
+            name: editingName,
+            country_id: Number(regionCountryId),
           })
         }
       }
 
       if (active === "wine-types") {
         if (editingItem) {
-          await fetchJson(`/admin/wine-types/${editingItem.id}`, {
-            method: "PATCH",
-            body: JSON.stringify({ name }),
-          })
+          await adminLookupsApi.updateWineType(editingItem.id, { name: editingName })
         } else {
-          await fetchJson("/admin/wine-types", {
-            method: "POST",
-            body: JSON.stringify({ name }),
-          })
+          await adminLookupsApi.createWineType({ name: editingName })
         }
       }
 
-      if (active === "regions") {
-        if (!regionCountryId) {
-          throw new Error("Country is required for regions")
-        }
+      await loadActive()
+      resetForm()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed")
+    }
+  }
 
-        if (editingItem) {
-          await fetchJson(`/admin/regions/${editingItem.id}`, {
-            method: "PATCH",
-            body: JSON.stringify({
-              name,
-              country_id: Number(regionCountryId),
-            }),
-          })
-        } else {
-          await fetchJson("/admin/regions", {
-            method: "POST",
-            body: JSON.stringify({
-              name,
-              country_id: Number(regionCountryId),
-            }),
-          })
-        }
+  async function handleWineSave(payload: {
+    name: string
+    year: number | null
+    alc_perc: number | null
+    capacity_ml: number | null
+    country_id: number | null
+    region_id: number | null
+    wine_type_id: number | null
+    taste_profile_id: number | null
+  }) {
+    setError(null)
+    try {
+      if (editingItem && "id" in editingItem) {
+        await adminLookupsApi.updateWine(editingItem.id, payload)
+      } else {
+        await adminLookupsApi.createWine(payload)
       }
-
       await loadActive()
       resetForm()
     } catch (err) {
@@ -178,141 +190,119 @@ export function AdminLookupsPage() {
 
     try {
       if (active === "countries") {
-        await fetchJson(`/admin/countries/${item.id}`, { method: "DELETE" })
+        await adminLookupsApi.deleteCountry(item.id)
       } else if (active === "regions") {
-        await fetchJson(`/admin/regions/${item.id}`, { method: "DELETE" })
-      } else {
-        await fetchJson(`/admin/wine-types/${item.id}`, { method: "DELETE" })
+        await adminLookupsApi.deleteRegion(item.id)
+      } else if (active === "wine-types") {
+        await adminLookupsApi.deleteWineType(item.id)
+      } else if (active === "wines") {
+        await adminLookupsApi.deleteWine(item.id)
       }
 
       await loadActive()
-      if (editingItem?.id === item.id) resetForm()
+
+      if (editingItem?.id === item.id) {
+        resetForm()
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed")
     }
   }
 
-  function renderSubtitle(item: LookupItem) {
-    if (active !== "regions") return null
-    if (!("country_id" in item)) return null
-
-    const country = countries.find((c) => c.id === item.country_id)
-    return country?.name ?? `Country #${item.country_id}`
+  if (!user) {
+    return <div className="admin-page-state">You need to be logged in.</div>
   }
 
+  if (!user.is_superuser) {
+    return <div className="admin-page-state">You do not have admin access.</div>
+  }
+// min-h-screen flex flex-col bg-gray-900 text-white
   return (
-    <section className="admin-lookups">
-      <div className="admin-lookups__header">
+    <section className="min-h-screen  px-6 py-6 ">
+      <header className="mb-6">
         <div>
-          <h1>Admin lookups</h1>
-          <p>Manage one lookup list at a time and switch between resource types.</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">
+            Admin lookups
+          </h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Manage one lookup list at a time.
+          </p>
         </div>
-      </div>
+      </header>
 
-      <div className="admin-switcher" role="tablist" aria-label="Lookup type">
-        {(["countries", "regions", "wine-types"] as AdminResource[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={active === key}
-            className={active === key ? "is-active" : ""}
-            onClick={() => setActive(key)}
-          >
-            {key === "countries" ? "Countries" : key === "regions" ? "Regions" : "Wine types"}
-          </button>
-        ))}
-      </div>
+      <AdminLookupSwitcher value={active} onChange={setActive} />
 
-      {error && <div className="admin-error">{error}</div>}
-
-      <div className="admin-grid">
-        <div className="admin-card">
-          <div className="admin-card__head">
-            <h2>{title}</h2>
-            <span>{items.length} items</span>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(360px,0.9fr)]">
+        <div className="space-y-4">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <AdminLookupList
+              resource={active}
+              items={items}
+              countries={countries}
+              loading={loading}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
           </div>
 
-          {loading ? (
-            <div className="admin-empty">Loading…</div>
-          ) : items.length === 0 ? (
-            <div className="admin-empty">No items yet.</div>
-          ) : (
-            <ul className="admin-list">
-              {items.map((item) => (
-                <li key={item.id} className="admin-list__item">
-                  <div>
-                    <strong>{item.name}</strong>
-                    {renderSubtitle(item) && <p>{renderSubtitle(item)}</p>}
-                  </div>
-
-                  <div className="admin-list__actions">
-                    <button type="button" onClick={() => startEdit(item)}>
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="danger"
-                      onClick={() => handleDelete(item)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+          {active === "wines" && totalPages > 1 && (
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">              <button
+                type="button"
+                onClick={() => setWinePage((p) => Math.max(1, p - 1))}
+                disabled={winePage === 1}
+                className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 font-medium text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="font-medium">
+                Page {winePage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setWinePage((p) => Math.min(totalPages, p + 1))}
+                disabled={winePage === totalPages}
+                className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 font-medium text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
           )}
         </div>
 
-        <div className="admin-card">
-          <div className="admin-card__head">
-            <h2>{editingItem ? `Edit ${title.slice(0, -1)}` : `New ${title.slice(0, -1)}`}</h2>
-          </div>
-
-          <form className="admin-form" onSubmit={handleSubmit}>
-            <label>
-              Name
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={`Enter ${title.toLowerCase()} name`}
-                required
-              />
-            </label>
-
-            {active === "regions" && (
-              <label>
-                Country
-                <select
-                  value={regionCountryId}
-                  onChange={(e) =>
-                    setRegionCountryId(e.target.value ? Number(e.target.value) : "")
-                  }
-                  required
-                >
-                  <option value="">Select country</option>
-                  {countries.map((country) => (
-                    <option key={country.id} value={country.id}>
-                      {country.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <div className="admin-form__actions">
-              <button type="submit">
-                {editingItem ? "Save changes" : "Create"}
-              </button>
-              {editingItem && (
-                <button type="button" className="secondary" onClick={resetForm}>
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
+        <div>
+          {active === "wines" ? (
+            <AdminWineForm
+              editingWine={
+                editingItem && "year" in editingItem ? (editingItem as Wine) : null
+              }
+              countries={countries}
+              regions={regions}
+              wineTypes={wineTypes}
+              tasteProfiles={tasteProfiles}
+              onSave={handleWineSave}
+              onCancel={resetForm}
+            />
+          ) : (
+            <AdminLookupForm
+              resource={active}
+              countries={countries}
+              editingName={editingName}
+              setEditingName={setEditingName}
+              regionCountryId={regionCountryId}
+              setRegionCountryId={setRegionCountryId}
+              isEditing={!!editingItem}
+              onSubmit={handleSubmit}
+              onCancel={resetForm}
+            />
+          )}
         </div>
       </div>
+
+      {error && (
+        <div className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+          {error}
+        </div>
+      )}
     </section>
   )
 }

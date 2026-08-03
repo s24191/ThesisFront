@@ -12,7 +12,7 @@ import {MyFollowedWinesPage} from "@/pages/MyFollowedWinesPage.tsx";
 import {MyCommentsPage} from "@/pages/MyCommentsPage.tsx";
 import{ AdminPage} from "@/pages/AdminPage.tsx";
 import {AdminRoute} from "@/router/AdminRoute.tsx";
-import {AdminLookupsPage} from "@/features/admin/AdminLookupsPage.tsx";
+import {AdminLookupsPage} from "@/pages/AdminLookupsPage.tsx";
 export const AppRoutes: React.FC = () => {
   const fetchUser = useAuthStore((s) => s.fetchUser);
 

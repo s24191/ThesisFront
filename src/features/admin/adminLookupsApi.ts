@@ -18,6 +18,11 @@ export type WineType = {
   name: string
 }
 
+export type TasteProfile = {
+  id: number
+  name: string
+}
+
 export type Wine = {
   id: number
   name: string
@@ -130,7 +135,8 @@ export const adminLookupsApi = {
     adminRequest<void>(`/admin/wine-types/${id}`, {
       method: "DELETE",
     }),
-
+  listTasteProfiles: () => adminRequest("/admin/taste-profiles"),
+  
   listWines: (params?: { limit?: number; offset?: number }) => {
     const search = new URLSearchParams()
     if (params?.limit != null) search.set("limit", String(params.limit))
