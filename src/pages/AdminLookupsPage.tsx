@@ -10,13 +10,11 @@ import {
 import { AdminLookupSwitcher } from "@/features/admin/components/AdminLookupSwitcher.tsx"
 import { AdminLookupList } from "@/features/admin/components/AdminLookupList.tsx"
 import { AdminLookupForm } from "@/features/admin/components/AdminLookupForm.tsx"
-import { useAuthStore } from "@/store/authStore.ts"
 import {AdminWineForm} from "@/features/admin/components/AdminWineForm.tsx";
 
 type LookupItem = Country | Region | WineType | Wine
 
 export function AdminLookupsPage() {
-  const user = useAuthStore((state) => state.user)
 
   const [active, setActive] = useState<AdminResource>("countries")
   const [items, setItems] = useState<LookupItem[]>([])
@@ -213,14 +211,6 @@ export function AdminLookupsPage() {
     }
   }
 
-  if (!user) {
-    return <div className="admin-page-state">You need to be logged in.</div>
-  }
-
-  if (!user.is_superuser) {
-    return <div className="admin-page-state">You do not have admin access.</div>
-  }
-// min-h-screen flex flex-col bg-gray-900 text-white
   return (
     <section className="min-h-screen  px-6 py-6 ">
       <header className="mb-6">

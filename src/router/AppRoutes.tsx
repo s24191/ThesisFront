@@ -13,6 +13,8 @@ import {MyCommentsPage} from "@/pages/MyCommentsPage.tsx";
 import{ AdminPage} from "@/pages/AdminPage.tsx";
 import {AdminRoute} from "@/router/AdminRoute.tsx";
 import {AdminLookupsPage} from "@/pages/AdminLookupsPage.tsx";
+import {AdminScrapingPage} from "@/pages/AdminScrapingPage.tsx";
+
 export const AppRoutes: React.FC = () => {
   const fetchUser = useAuthStore((s) => s.fetchUser);
 
@@ -25,7 +27,7 @@ return (
       <div className="min-h-screen flex flex-col bg-gray-900 text-white">
         <NavBar />
 
-        <div className="flex-grow flex items-center justify-center p-4">
+        <div className="flex-grow items-center justify-center p-4">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<LoginForm />} />
@@ -34,8 +36,11 @@ return (
             <Route path="/wines/:id" element={<WinePage />} />
             <Route path="/me/followed-wines" element={<MyFollowedWinesPage />} />
             <Route path="/me/comments" element={<MyCommentsPage />} />
-            <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>}/>
-            <Route path="/admin/lookups" element={<AdminLookupsPage />} />
+            <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>}>
+              <Route path="lookups" element={<AdminLookupsPage />} />
+              <Route path="scraping" element={<AdminScrapingPage />} />
+            </Route>
+
           </Routes>
         </div>
       </div>
