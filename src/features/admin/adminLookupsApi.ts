@@ -1,4 +1,7 @@
 import { useAuthStore } from "@/store/authStore"
+import type {
+  WineFilters,
+} from "@/features/wines/api";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:8000"
 
@@ -137,12 +140,46 @@ export const adminLookupsApi = {
     }),
   listTasteProfiles: () => adminRequest("/admin/taste-profiles"),
   
-  listWines: (params?: { limit?: number; offset?: number }) => {
-    const search = new URLSearchParams()
-    if (params?.limit != null) search.set("limit", String(params.limit))
-    if (params?.offset != null) search.set("offset", String(params.offset))
-    return adminRequest(`/admin/wines${search.toString() ? `?${search}` : ""}`)
+  listWines: (
+  params?: WineFilters & {
+    limit?: number;
+    offset?: number;
   },
+) => {
+  const search = new URLSearchParams();
+
+  if (params?.search) {
+    search.set("search", params.search);
+  }
+
+  if (params?.country) {
+    search.set("country", params.country);
+  }
+
+  if (params?.region) {
+    search.set("region", params.region);
+  }
+
+  if (params?.sort) {
+    search.set("sort", params.sort);
+  }
+
+  if (params?.limit != null) {
+    search.set("limit", String(params.limit));
+  }
+
+  if (params?.offset != null) {
+    search.set("offset", String(params.offset));
+  }
+
+  return adminRequest(
+    `/admin/wines${
+      search.toString()
+        ? `?${search}`
+        : ""
+    }`,
+  );
+},
 
   createWine: (payload: {
     name: string

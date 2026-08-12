@@ -11,10 +11,18 @@ type WineCardProps = {
 export const WineCard = ({ wine }: WineCardProps) => {
   const cheapest = wine.best_price;
   const offers = (wine as any).offers ?? [];
+  const rating = wine.rating;
+
+  const ratingsCount = Number(
+    wine.ratings_count ?? 0,
+  );
+
+  const hasRatings =
+  rating !== null &&
+  ratingsCount > 0;
 
   return (
     <div className="flex border border-black rounded-md overflow-hidden bg-white h-full">
-      {/* left: placeholder image (no real image from backend yet) */}
       <div className="w-32 sm:w-40">
         <WineImageCarousel wine={wine} />
       </div>
@@ -43,22 +51,26 @@ export const WineCard = ({ wine }: WineCardProps) => {
             <div className="text-sm sm:text-lg font-semibold leading-none flex items-center justify-end gap-1">
               <span className="text-yellow-500">★</span>
               <span>
-                {wine.rating != null ? wine.rating.toFixed(1) : "–"}
+                {wine.rating != null ? rating : "–"}
               </span>
             </div>
             <div className="text-[10px] sm:text-xs text-gray-600">
-              {wine.ratings_count != null
-                  ? `${wine.ratings_count} ratings`
-                  : "No ratings"}
+              {hasRatings
+               ? `${ratingsCount} ${
+                   ratingsCount === 1
+                     ? "rating"
+                     : "ratings"
+                 }`
+               : "–"}
             </div>
           </div>
         </div>
 
         <div className="mt-2 space-y-0.5 text-xs sm:text-sm text-gray-900">
-          {cheapest != null && (
-           <div className="text-gray-800">
-            Best price: {cheapest.toFixed(2)} zł
-           </div>
+          {cheapest !== null && (
+            <div className="text-gray-800">
+              Best price: {cheapest} zł
+            </div>
           )}
           {offers.length === 0 ? (
             <div className="text-gray-500">No offers available</div>
@@ -70,7 +82,7 @@ export const WineCard = ({ wine }: WineCardProps) => {
                      onClick={(e) => e.stopPropagation()}
                 >
                   <span className="text-gray-700">{offer.shop_name}</span>
-                  <span>{offer.price.toFixed(2)} zł</span>
+                  <span>{offer.price} zł</span>
                   <a
                     href={offer.shop_url}
                     target="_blank"

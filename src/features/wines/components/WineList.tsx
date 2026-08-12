@@ -1,8 +1,8 @@
-import type { Wine } from "../types";
+import type {WineCardWine} from "../types";
 import { WineCard } from "./WineCard";
 
 type WineListProps = {
-  wines: Wine[];
+   wines: WineCardWine[];
 };
 
 
@@ -16,7 +16,7 @@ export const WineList = ({ wines }: WineListProps) => {
       {wines.map((wine) => (
         <div
           key={wine.id}
-          className="w-72 sm:w-80" // card width
+          className="w-72 sm:w-80"
         >
           <WineCard wine={wine} />
         </div>

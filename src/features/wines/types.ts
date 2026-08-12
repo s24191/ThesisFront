@@ -4,27 +4,30 @@ export interface WineOffer {
   price: number;
 }
 
-export interface Wine {
-  id: number;
-  name: string;
-  country: string;
-  region: string | null;
-  rating: number | null;
-  ratings_count: number | null;
-  best_price: number | null;
-  offers: WineOffer[];
-}
+export type WineCardOffer = {
+  shop_name: string;
+  shop_url: string;
+  price: number | string;
+  image_url: string | null;
+};
+
 
 export type WineCardWine = {
   id: number;
   name: string;
+  year: number | null;
+
   country: string;
   region: string | null;
-  rating: number | null;
-  ratings_count: number | null;
-  best_price: number | null;
-  image_url?: string | null;
-  offers?: (WineOffer & { image_url?: string | null })[];
+  wine_type: string;
+  taste: string | null;
+
+  rating: number | string | null;
+  ratings_count: number;
+
+  best_price: number | string | null;
+  offers: WineCardOffer[];
+  image_url: string | null;
 };
 
 export type WineComment = {

@@ -1,12 +1,12 @@
 import {useEffect, useState} from "react";
 import { fetchWines, type WineFilters  } from "../features/wines/api";
-import type {Wine} from "../features/wines/types";
+import type {WineCardWine} from "../features/wines/types";
 import { WineList } from "../features/wines/components/WineList";
 import { WineFiltersBar } from "@/features/wines/components/WineFiltersBar";
 import {useSearchParams} from "react-router-dom";
 
 export const WinesPage: React.FC = () => {
-    const [wines, setWines] = useState<Wine[]>([]);
+    const [wines, setWines] = useState<WineCardWine[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const [filters, setFilters] = useState<WineFilters>(() => ({
       search: searchParams.get("search") ?? undefined,   // uses `search`

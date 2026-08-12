@@ -11,6 +11,10 @@ import { AdminLookupSwitcher } from "@/features/admin/components/AdminLookupSwit
 import { AdminLookupList } from "@/features/admin/components/AdminLookupList.tsx"
 import { AdminLookupForm } from "@/features/admin/components/AdminLookupForm.tsx"
 import {AdminWineForm} from "@/features/admin/components/AdminWineForm.tsx";
+import type {WineFilters} from "@/features/wines/api.ts";
+import {
+  WineFiltersBar,
+} from "@/features/wines/components/WineFiltersBar";
 
 type LookupItem = Country | Region | WineType | Wine
 
@@ -32,7 +36,8 @@ export function AdminLookupsPage() {
   const [winePage, setWinePage] = useState(1)
   const pageSize = 50
   const [wineTotal, setWineTotal] = useState(0)
-
+  const [wineFilters, setWineFilters] =
+    useState<WineFilters>({});
   const totalPages = Math.ceil(wineTotal / pageSize)
 
 
@@ -69,6 +74,7 @@ export function AdminLookupsPage() {
             adminLookupsApi.listWineTypes(),
             adminLookupsApi.listTasteProfiles(),
             adminLookupsApi.listWines({
+              ...wineFilters,
               limit: pageSize,
               offset: (winePage - 1) * pageSize,
             }),
@@ -92,10 +98,16 @@ export function AdminLookupsPage() {
   }
 
   useEffect(() => {
-    loadActive()
+    void loadActive()
     resetForm()
   }, [active, winePage])
+  useEffect(() => {
+    if (active !== "wines") {
+      return;
+    }
 
+    void loadActive();
+  }, [wineFilters]);
   function resetForm() {
     setEditingItem(null)
     setEditingName("")
@@ -212,91 +224,118 @@ export function AdminLookupsPage() {
   }
 
   return (
-    <section className="min-h-screen  px-6 py-6 ">
-      <header className="mb-6">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-white">
-            Admin lookups
-          </h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Manage one lookup list at a time.
-          </p>
+  <section className="min-h-screen px-6 py-6">
+    <header className="mb-6">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight text-white">
+          Admin lookups
+        </h1>
+
+        <p className="mt-2 text-sm text-slate-400">
+          Manage one lookup list at a time.
+        </p>
+      </div>
+    </header>
+
+    <AdminLookupSwitcher
+      value={active}
+      onChange={setActive}
+    />
+
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(360px,0.9fr)]">
+      <div className="space-y-4">
+        {active === "wines" && (
+          <WineFiltersBar
+            value={wineFilters}
+            onChange={(nextFilters) => {
+              setWinePage(1);
+              setWineFilters(nextFilters);
+            }}
+          />
+        )}
+
+        <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <AdminLookupList
+            resource={active}
+            items={items}
+            countries={countries}
+            loading={loading}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
         </div>
-      </header>
 
-      <AdminLookupSwitcher value={active} onChange={setActive} />
+        {active === "wines" && totalPages > 1 && (
+          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
+            <button
+              type="button"
+              onClick={() => {
+                setWinePage((page) =>
+                  Math.max(1, page - 1),
+                );
+              }}
+              disabled={winePage === 1}
+              className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 font-medium text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Prev
+            </button>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.8fr)_minmax(360px,0.9fr)]">
-        <div className="space-y-4">
-          <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <AdminLookupList
-              resource={active}
-              items={items}
-              countries={countries}
-              loading={loading}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+            <span className="font-medium">
+              Page {winePage} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => {
+                setWinePage((page) =>
+                  Math.min(totalPages, page + 1),
+                );
+              }}
+              disabled={winePage === totalPages}
+              className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 font-medium text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Next
+            </button>
           </div>
-
-          {active === "wines" && totalPages > 1 && (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">              <button
-                type="button"
-                onClick={() => setWinePage((p) => Math.max(1, p - 1))}
-                disabled={winePage === 1}
-                className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 font-medium text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="font-medium">
-                Page {winePage} of {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setWinePage((p) => Math.min(totalPages, p + 1))}
-                disabled={winePage === totalPages}
-                className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 font-medium text-slate-100 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div>
-          {active === "wines" ? (
-            <AdminWineForm
-              editingWine={
-                editingItem && "year" in editingItem ? (editingItem as Wine) : null
-              }
-              countries={countries}
-              regions={regions}
-              wineTypes={wineTypes}
-              tasteProfiles={tasteProfiles}
-              onSave={handleWineSave}
-              onCancel={resetForm}
-            />
-          ) : (
-            <AdminLookupForm
-              resource={active}
-              countries={countries}
-              editingName={editingName}
-              setEditingName={setEditingName}
-              regionCountryId={regionCountryId}
-              setRegionCountryId={setRegionCountryId}
-              isEditing={!!editingItem}
-              onSubmit={handleSubmit}
-              onCancel={resetForm}
-            />
-          )}
-        </div>
+        )}
       </div>
 
-      {error && (
-        <div className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {error}
-        </div>
-      )}
-    </section>
-  )
+      <div>
+        {active === "wines" ? (
+          <AdminWineForm
+            editingWine={
+              editingItem && "year" in editingItem
+                ? (editingItem as Wine)
+                : null
+            }
+            countries={countries}
+            regions={regions}
+            wineTypes={wineTypes}
+            tasteProfiles={tasteProfiles}
+            onSave={handleWineSave}
+            onCancel={resetForm}
+          />
+        ) : (
+          <AdminLookupForm
+            resource={active}
+            countries={countries}
+            editingName={editingName}
+            setEditingName={setEditingName}
+            regionCountryId={regionCountryId}
+            setRegionCountryId={setRegionCountryId}
+            isEditing={Boolean(editingItem)}
+            onSubmit={handleSubmit}
+            onCancel={resetForm}
+          />
+        )}
+      </div>
+    </div>
+
+    {error && (
+      <div className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+        {error}
+      </div>
+    )}
+  </section>
+);
 }

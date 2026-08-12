@@ -1,4 +1,4 @@
-import type {FollowedWine, MyComment, Wine, WineComment, WineNote, WineTasteSummary, WineTasteVote} from "./types";
+import type {FollowedWine, MyComment, WineCardWine, WineComment, WineNote, WineTasteSummary, WineTasteVote} from "./types";
 import {api} from "@/lib/api.ts";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -32,7 +32,9 @@ export interface WineFilters {
   pageSize?: number;
 }
 
-export async function fetchWines(filters: WineFilters = {}): Promise<Wine[]> {
+export async function fetchWines(
+  filters: WineFilters = {},
+): Promise<WineCardWine[]> {
   const params = new URLSearchParams();
 
   if (filters.search) params.set("search", filters.search);
@@ -50,7 +52,7 @@ export async function fetchWines(filters: WineFilters = {}): Promise<Wine[]> {
   if (!res.ok) {
     throw new Error(`Failed to load wines: ${res.status}`);
   }
-  return (await res.json()) as Wine[];
+  return (await res.json()) as WineCardWine[];
 }
 
 export async function fetchCountries(): Promise<string[]> {
