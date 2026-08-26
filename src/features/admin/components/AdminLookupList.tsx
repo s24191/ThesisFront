@@ -1,10 +1,4 @@
-import type {
-  AdminResource,
-  Country,
-  Region,
-  WineType,
-  Wine
-} from "@/features/admin/adminLookupsApi"
+import type {AdminResource, Country, Region, Wine, WineType} from "@/features/admin/types";
 
 type LookupItem = Country | Region | WineType | Wine
 

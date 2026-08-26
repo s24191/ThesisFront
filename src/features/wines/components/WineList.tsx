@@ -1,25 +1,43 @@
-import type {WineCardWine} from "../types";
-import { WineCard } from "./WineCard";
+import type {
+  WineCardWine,
+} from "@/features/wines/types";
+
+import {
+  WineCard,
+} from "./WineCard";
 
 type WineListProps = {
-   wines: WineCardWine[];
+  wines: WineCardWine[];
 };
 
-
-export const WineList = ({ wines }: WineListProps) => {
+export const WineList = ({
+  wines,
+}: WineListProps) => {
   if (!wines.length) {
-    return <p className="text-gray-500">No wines.</p>;
+    return (
+      <section
+        aria-live="polite"
+        className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/50 px-6 py-14 text-center"
+      >
+        <p className="text-base font-semibold text-slate-200">
+          No wines found
+        </p>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Try clearing a filter or searching with a
+          different name, region, or country.
+        </p>
+      </section>
+    );
   }
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {wines.map((wine) => (
-        <div
+        <WineCard
           key={wine.id}
-          className="w-72 sm:w-80"
-        >
-          <WineCard wine={wine} />
-        </div>
+          wine={wine}
+        />
       ))}
     </div>
   );

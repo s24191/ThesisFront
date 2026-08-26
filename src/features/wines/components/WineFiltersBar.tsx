@@ -1,104 +1,145 @@
-import {type FC, type ChangeEvent, useMemo} from "react";
-import { useEffect, useState } from "react";
-import type { WineFilters } from "../api";
-import { fetchCountries, fetchRegions } from "../api";
+import {
+  type ChangeEvent,
+  type FC,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  fetchCountries,
+  fetchRegions,
+} from "@/features/wines/api";
+
+import type {
+  WineFilters,
+} from "@/features/wines/types";
+
+import {
+  encodeSorts,
+  parseSorts,
+  SORT_CONFIG,
+  SORT_KEYS,
+  type SortKey,
+} from "@/features/wines/utils/wineSorts";
 
 interface WineFiltersBarProps {
   value: WineFilters;
   onChange: (filters: WineFilters) => void;
 }
 
-type SortKey =
-  | "year"
-  | "alcohol"
-  | "volume"
-  | "comments"
-  | "rating"
-  | "body"
-  | "tannin"
-  | "sweetness"
-  | "acidity"
-  | "price"
-  | null;
+/*
+ * API representation:
+ *
+ *   price-asc,volume-asc
+ *
+ * The order in this string is the sort precedence.
+ */
 
-type SortDir = "default" | "asc" | "desc";
+export const WineFiltersBar: FC<
+  WineFiltersBarProps
+> = ({
+  value,
+  onChange,
+}) => {
+  const [filters, setFilters] =
+    useState<WineFilters>(value);
 
-const SORT_CONFIG: Record<
-  Exclude<SortKey, null>,
-  { label: string; defaultDir: Exclude<SortDir, "default"> }
-> = {
-  year: { label: "Year", defaultDir: "desc" },
-  alcohol: { label: "Alcohol", defaultDir: "desc" },
-  volume: { label: "Volume", defaultDir: "desc" },
-  comments: { label: "Comments", defaultDir: "desc" },
-  rating: { label: "Rating", defaultDir: "desc" },
-  body: { label: "Body", defaultDir: "desc" },
-  tannin: { label: "Tannin", defaultDir: "desc" },
-  sweetness: { label: "Sweetness", defaultDir: "desc" },
-  acidity: { label: "Acidity", defaultDir: "desc" },
-  price: { label: "Price", defaultDir: "desc" },
-};
+  const [countries, setCountries] =
+    useState<string[]>([]);
 
-function parseSort(sort: WineFilters["sort"] | undefined): {
-  key: SortKey;
-  dir: SortDir;
-} {
-  if (!sort) return { key: null, dir: "default" };
+  const [regions, setRegions] =
+    useState<string[]>([]);
 
-  const [rawKey, rawDir] = sort.split("-") as [string, "asc" | "desc" | undefined];
-  const key = rawKey as SortKey;
-  if (!key || !(key in SORT_CONFIG)) return { key: null, dir: "default" };
-
-  return { key, dir: rawDir ?? SORT_CONFIG[key].defaultDir };
-}
-
-function encodeSort(key: SortKey, dir: SortDir): WineFilters["sort"] | undefined {
-  if (!key || dir === "default") return undefined;
-  return `${key}-${dir}` as WineFilters["sort"];
-}
-
-export const WineFiltersBar: FC<WineFiltersBarProps> = ({ value, onChange }) => {
-  const [filters, setFilters] = useState<WineFilters>(value);
-  const [countries, setCountries] = useState<string[]>([]);
-  const [regions, setRegions] = useState<string[]>([]);
- useEffect(() => {
+  useEffect(() => {
     setFilters(value);
   }, [value]);
 
   useEffect(() => {
-    fetchCountries().then(setCountries).catch(() => setCountries([]));
+    fetchCountries()
+      .then(setCountries)
+      .catch(() => setCountries([]));
   }, []);
 
   useEffect(() => {
-  setRegions([]);
-  fetchRegions(filters.country)
-    .then((data) => setRegions(data))
-    .catch(() => setRegions([]));
-}, [filters.country]);
+    let isCurrent = true;
 
-  const { key: sortKey, dir: sortDir } = useMemo(
-    () => parseSort(filters.sort),
-    [filters.sort]
+    setRegions([]);
+
+    if (!filters.country) {
+      return () => {
+        isCurrent = false;
+      };
+    }
+
+    const loadRegions = async () => {
+      try {
+        const nextRegions = await fetchRegions(
+          filters.country,
+        );
+
+        if (isCurrent) {
+          setRegions(nextRegions);
+        }
+      } catch {
+        if (isCurrent) {
+          setRegions([]);
+        }
+      }
+    };
+
+    void loadRegions();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    filters.country,
+  ]);
+  const activeSorts = useMemo(
+    () => parseSorts(filters.sort),
+    [filters.sort],
   );
 
-  const updateFilters = (patch: Partial<WineFilters>) => {
-    const next = { ...filters, ...patch };
+  const updateFilters = (
+    patch: Partial<WineFilters>,
+  ) => {
+    const next = {
+      ...filters,
+      ...patch,
+    };
+
     setFilters(next);
     onChange(next);
   };
 
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
-  const value = e.target.value.trim();
-  updateFilters({ search: value || undefined });
+  const handleSearchChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const search = event.target.value;
+
+    updateFilters({
+      search: search || undefined,
+    });
   };
 
-  const handleCountryChange = (e: ChangeEvent<HTMLSelectElement>) => {
-  const value = e.target.value || undefined;
-  updateFilters({ country: value, region: undefined });
-};
+  const handleCountryChange = (
+    event: ChangeEvent<HTMLSelectElement>,
+  ) => {
+    const country = event.target.value || undefined;
 
-  const handleRegionChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    updateFilters({ region: e.target.value || undefined });
+    updateFilters({
+      country,
+      region: undefined,
+    });
+  };
+
+  const handleRegionChange = (
+    event: ChangeEvent<HTMLSelectElement>,
+  ) => {
+    updateFilters({
+      region: event.target.value || undefined,
+    });
   };
 
   const uniqueRegions = useMemo(
@@ -106,96 +147,251 @@ export const WineFiltersBar: FC<WineFiltersBarProps> = ({ value, onChange }) => 
     [regions],
   );
 
-  const toggleSort = (key: Exclude<SortKey, null>) => {
-    const defaultDir = SORT_CONFIG[key].defaultDir;
+  /*
+   * Click cycle:
+   *
+   * Not selected → add using default direction
+   * Default direction → reverse direction
+   * Reverse direction → remove from multi-sort
+   */
+  const toggleSort = (
+    key: SortKey,
+  ) => {
+    const existingIndex = activeSorts.findIndex(
+      (sort) => sort.key === key,
+    );
 
-    if (sortKey !== key) {
-      updateFilters({ sort: encodeSort(key, defaultDir) });
+    if (existingIndex === -1) {
+      updateFilters({
+        sort: encodeSorts([
+          ...activeSorts,
+          {
+            key,
+            dir: SORT_CONFIG[key].defaultDir,
+          },
+        ]),
+      });
+
       return;
     }
 
-    let nextDir: SortDir;
-    if (sortDir === "default") {
-      nextDir = defaultDir;
-    } else if (sortDir === defaultDir) {
-      nextDir = defaultDir === "asc" ? "desc" : "asc";
-    } else {
-      nextDir = "default";
+    const existing = activeSorts[existingIndex];
+    const defaultDir =
+      SORT_CONFIG[key].defaultDir;
+
+    if (existing.dir === defaultDir) {
+      const nextSorts = [...activeSorts];
+
+      nextSorts[existingIndex] = {
+        ...existing,
+        dir:
+          defaultDir === "asc"
+            ? "desc"
+            : "asc",
+      };
+
+      updateFilters({
+        sort: encodeSorts(nextSorts),
+      });
+
+      return;
     }
 
-    updateFilters({ sort: encodeSort(key, nextDir) });
+    updateFilters({
+      sort: encodeSorts(
+        activeSorts.filter(
+          (sort) => sort.key !== key,
+        ),
+      ),
+    });
   };
 
-  const sortButtonClass = (key: Exclude<SortKey, null>) =>
-    [
-      "rounded-full border px-3 py-1 text-xs font-medium transition",
-      sortKey === key && sortDir !== "default"
-        ? "border-teal-500 bg-teal-50 text-teal-700"
-        : "border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100",
+  const clearFilters = () => {
+    updateFilters({
+      search: undefined,
+      country: undefined,
+      region: undefined,
+      sort: undefined,
+    });
+  };
+
+  const getSort = (
+    key: SortKey,
+  ) =>
+    activeSorts.find(
+      (sort) => sort.key === key,
+    );
+
+  const sortButtonClass = (
+    key: SortKey,
+  ) => {
+    const activeSort = getSort(key);
+
+    return [
+      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+      activeSort
+        ? "border-teal-400/60 bg-teal-400/10 text-teal-200 hover:border-teal-300 hover:bg-teal-400/20"
+        : "border-slate-700 bg-slate-800 text-slate-300 hover:border-slate-500 hover:bg-slate-700 hover:text-slate-100",
     ].join(" ");
-
-  const sortLabel = (key: Exclude<SortKey, null>) => {
-    const label = SORT_CONFIG[key].label;
-    if (sortKey !== key || sortDir === "default") return label;
-    return `${label} ${sortDir === "asc" ? "↑" : "↓"}`;
   };
+
+  const sortButtonLabel = (
+    key: SortKey,
+  ) => {
+    const activeSort = getSort(key);
+
+    if (!activeSort) {
+      return SORT_CONFIG[key].label;
+    }
+
+    const priority =
+      activeSorts.findIndex(
+        (sort) => sort.key === key,
+      ) + 1;
+
+    const direction =
+      activeSort.dir === "asc"
+        ? "↑"
+        : "↓";
+
+    return `${priority} ${SORT_CONFIG[key].label} ${direction}`;
+  };
+
+  const hasActiveFilters =
+    Boolean(filters.search) ||
+    Boolean(filters.country) ||
+    Boolean(filters.region) ||
+    activeSorts.length > 0;
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
-      <div className="min-w-[220px] flex-1">
-        <input
-          type="text"
-          value={filters.search ?? ""}
-          onChange={handleSearchChange}
-          placeholder="Search wines…"
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-        />
-      </div>
+    <section className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4 shadow-sm sm:p-5">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <label className="min-w-0 flex-1">
+            <span className="sr-only">
+              Search wines
+            </span>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium text-slate-500">Sort by</span>
-        <button type="button" onClick={() => toggleSort("year")} className={sortButtonClass("year")}>{sortLabel("year")}</button>
-        <button type="button" onClick={() => toggleSort("alcohol")} className={sortButtonClass("alcohol")}>{sortLabel("alcohol")}</button>
-        <button type="button" onClick={() => toggleSort("volume")} className={sortButtonClass("volume")}>{sortLabel("volume")}</button>
-        <button type="button" onClick={() => toggleSort("comments")} className={sortButtonClass("comments")}>{sortLabel("comments")}</button>
-        <button type="button" onClick={() => toggleSort("rating")} className={sortButtonClass("rating")}>{sortLabel("rating")}</button>
-        <button type="button" onClick={() => toggleSort("body")} className={sortButtonClass("body")}>{sortLabel("body")}</button>
-        <button type="button" onClick={() => toggleSort("tannin")} className={sortButtonClass("tannin")}>{sortLabel("tannin")}</button>
-        <button type="button" onClick={() => toggleSort("sweetness")} className={sortButtonClass("sweetness")}>{sortLabel("sweetness")}</button>
-        <button type="button" onClick={() => toggleSort("acidity")} className={sortButtonClass("acidity")}>{sortLabel("acidity")}</button>
-        <button type="button" onClick={() => toggleSort("price")} className={sortButtonClass("price")}>{sortLabel("price")}</button>
-      </div>
+            <input
+              type="search"
+              value={filters.search ?? ""}
+              onChange={handleSearchChange}
+              placeholder="Search wines, regions, producers…"
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20"
+            />
+          </label>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={filters.country ?? ""}
-          onChange={handleCountryChange}
-          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-        >
-          <option value="">All countries</option>
-          {countries.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <select
+              value={filters.country ?? ""}
+              onChange={handleCountryChange}
+              className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20"
+            >
+              <option value="">
+                All countries
+              </option>
 
-        <select
-          value={filters.region ?? ""}
-          onChange={handleRegionChange}
-          className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-          disabled={!filters.country}
-        >
-          <option value="">
-            {filters.country ? "All regions" : "Select country first"}
-          </option>
-          {uniqueRegions.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </select>
+              {countries.map((country) => (
+                <option
+                  key={country}
+                  value={country}
+                >
+                  {country}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={filters.region ?? ""}
+              onChange={handleRegionChange}
+              disabled={!filters.country}
+              className="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm text-slate-100 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              <option value="">
+                {filters.country
+                  ? "All regions"
+                  : "Select country first"}
+              </option>
+
+              {uniqueRegions.map((region) => (
+                <option
+                  key={region}
+                  value={region}
+                >
+                  {region}
+                </option>
+              ))}
+            </select>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-xl border border-slate-700 px-3 py-2.5 text-sm font-semibold text-slate-300 transition hover:border-rose-400/70 hover:bg-rose-950 hover:text-rose-100"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-slate-700 pt-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Sort wines
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Choose multiple fields. Their number sets
+                the sorting priority.
+              </p>
+            </div>
+
+            {activeSorts.length > 0 && (
+              <span className="shrink-0 rounded-full border border-teal-400/25 bg-teal-400/10 px-2.5 py-1 text-[10px] font-semibold text-teal-200">
+                {activeSorts.length}{" "}
+                {activeSorts.length === 1
+                  ? "sort active"
+                  : "sorts active"}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {SORT_KEYS.map((key) => {
+                const activeSort = getSort(key);
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleSort(key)}
+                    aria-pressed={Boolean(activeSort)}
+                    className={sortButtonClass(key)}
+                  >
+                    {activeSort && (
+                      <span
+                        aria-hidden="true"
+                        className="grid h-4 w-4 place-items-center rounded-full bg-teal-400 text-[9px] font-bold text-slate-950"
+                      >
+                        {activeSorts.findIndex(
+                          (sort) =>
+                            sort.key === key,
+                        ) + 1}
+                      </span>
+                    )}
+
+                    <span>
+                      {sortButtonLabel(key)}
+                    </span>
+                  </button>
+                );
+              },
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
-}
+};

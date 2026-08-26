@@ -1,22 +1,32 @@
 import React, { useMemo, useState } from "react";
-import type {WineCardWine} from "@/features/wines/types.ts";
+
+type WineImageOffer = {
+  image_url?: string | null;
+};
+
+type WineImageSource = {
+  name: string;
+  offers?: WineImageOffer[];
+};
 
 type Props = {
-  wine: WineCardWine
+  wine: WineImageSource;
   className?: string;
 };
 
-
 export const WineImageCarousel: React.FC<Props> = ({ wine, className }) => {
-  const offers = (wine as any).offers ?? [];
+  const offers = wine.offers ?? [];
 
   const images = useMemo(
     () =>
       Array.from(
         new Set(
           offers
-            .map((o: { image_url?: string | null }) => o.image_url)
-            .filter((u: any): u is string => !!u),
+            .map((offer) => offer.image_url)
+            .filter(
+              (imageUrl): imageUrl is string =>
+                Boolean(imageUrl),
+            )
         )
       ),
     [offers]
@@ -72,7 +82,6 @@ export const WineImageCarousel: React.FC<Props> = ({ wine, className }) => {
       onMouseLeave={handleMouseLeave}
     >
       <img
-        // @ts-ignore
         src={images[index]}
         alt={`${wine.name} image ${index + 1} of ${images.length}`}
         className="h-full w-full object-cover"

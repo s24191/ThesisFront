@@ -1,293 +1,657 @@
-import React, { useEffect, useState } from "react";
 import {
-  fetchTasteSummary,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useAuthStore,
+} from "@/features/auth/store/authStore";
+
+import {
   fetchMyTasteVote,
+  fetchTasteSummary,
   upsertMyTasteVote,
 } from "@/features/wines/api";
-import type { WineTasteSummary, WineTasteVote } from "@/features/wines/types";
-import { useAuthStore } from "@/store/authStore";
 
-type Props = {
+import type {
+  WineTasteSummary,
+  WineTasteVote,
+} from "@/features/wines/types";
+
+type WineTasteSectionProps = {
   wineId: number;
 };
 
-const clamp0to10 = (v: number) => Math.max(0, Math.min(10, v));
+type TasteField =
+  | "body"
+  | "tannin"
+  | "sweetness"
+  | "acidity";
 
-const makeSegment = (avg: number | null | undefined): { start: string; width: string } => {
-  if (avg == null) return { start: "0%", width: "0%" };
+type TasteDescriptor = {
+  field: TasteField;
+  label: string;
+  leftLabel: string;
+  rightLabel: string;
+};
 
-  const widthFrac = 0.15; // 15% of the bar
-  const norm = Math.max(0, Math.min(10, avg)) / 10; // 0..1
+const TASTE_DESCRIPTORS: TasteDescriptor[] = [
+  {
+    field: "body",
+    label: "Body",
+    leftLabel: "Light",
+    rightLabel: "Bold",
+  },
+  {
+    field: "tannin",
+    label: "Tannin",
+    leftLabel: "Smooth",
+    rightLabel: "Tannic",
+  },
+  {
+    field: "sweetness",
+    label: "Sweetness",
+    leftLabel: "Dry",
+    rightLabel: "Sweet",
+  },
+  {
+    field: "acidity",
+    label: "Acidity",
+    leftLabel: "Soft",
+    rightLabel: "Acidic",
+  },
+];
 
-  let left = norm - widthFrac / 2;
-  left = Math.max(0, Math.min(1 - widthFrac, left)); // keep inside [0, 1 - width]
+const clamp0to10 = (
+  value: number,
+): number => Math.max(
+  0,
+  Math.min(10, value),
+);
+
+const createDefaultVote = (): WineTasteVote => ({
+  body: 5,
+  tannin: 5,
+  sweetness: 5,
+  acidity: 5,
+});
+
+function makeSegment(
+  average: number | null | undefined,
+): {
+  start: string;
+  width: string;
+} {
+  if (average === null || average === undefined) {
+    return {
+      start: "0%",
+      width: "0%",
+    };
+  }
+
+  const widthFraction = 0.15;
+
+  const normalizedAverage =
+    clamp0to10(average) / 10;
+
+  const left = Math.max(
+    0,
+    Math.min(
+      1 - widthFraction,
+      normalizedAverage - widthFraction / 2,
+    ),
+  );
 
   return {
     start: `${left * 100}%`,
-    width: `${widthFrac * 100}%`, // 15%
+    width: `${widthFraction * 100}%`,
   };
-};
+}
 
+function formatTasteValue(
+  value: number | null | undefined,
+): string {
+  if (value === null || value === undefined) {
+    return "–";
+  }
 
-export const WineTasteSection: React.FC<Props> = ({ wineId }) => {
-  const token = useAuthStore((s) => s.token);
-  const isLoggedIn = !!token;
+  return Number(value).toFixed(1);
+}
 
-  const [summary, setSummary] = useState<WineTasteSummary | null>(null);
-  const [myVote, setMyVote] = useState<WineTasteVote | null>(null);
-  const [loadingSummary, setLoadingSummary] = useState(false);
-  const [loadingMyVote, setLoadingMyVote] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isVoteOpen, setIsVoteOpen] = useState(false);
+export const WineTasteSection = ({
+  wineId,
+}: WineTasteSectionProps) => {
+  const user = useAuthStore(
+    (state) => state.user,
+  );
+
+  const isAuthenticated = Boolean(user);
+
+  const [summary, setSummary] = useState<
+    WineTasteSummary | null
+  >(null);
+
+  const [myVote, setMyVote] = useState<
+    WineTasteVote | null
+  >(null);
+
+  const [isLoadingSummary, setIsLoadingSummary] =
+    useState(false);
+
+  const [isLoadingMyVote, setIsLoadingMyVote] =
+    useState(false);
+
+  const [isSaving, setIsSaving] =
+    useState(false);
+
+  const [summaryError, setSummaryError] =
+    useState<string | null>(null);
+
+  const [voteError, setVoteError] =
+    useState<string | null>(null);
+
+  const [isVoteOpen, setIsVoteOpen] =
+    useState(false);
 
   useEffect(() => {
-    if (!wineId) return;
-    const load = async () => {
-      try {
-        setLoadingSummary(true);
-        setError(null);
-        const data = await fetchTasteSummary(wineId);
-        setSummary(data);
-      } catch (e: any) {
-        setError(e.message ?? "Failed to load taste summary");
-      } finally {
-        setLoadingSummary(false);
-      }
-    };
-    load();
-  }, [wineId]);
+    if (!wineId) {
+      setSummary(null);
+      setIsLoadingSummary(false);
+      setSummaryError(null);
 
-  // Load my vote if logged in
-  useEffect(() => {
-    if (!wineId || !isLoggedIn || !token) {
-      setMyVote(null);
       return;
     }
-    const load = async () => {
+
+    let isCurrent = true;
+
+    const loadTasteSummary = async () => {
       try {
-        setLoadingMyVote(true);
-        const data = await fetchMyTasteVote(wineId, token);
-        if (data) {
-          setMyVote(data);
-        } else {
-          setMyVote(null);
+        setIsLoadingSummary(true);
+        setSummaryError(null);
+
+        const data = await fetchTasteSummary(
+          wineId,
+        );
+
+        if (isCurrent) {
+          setSummary(data);
         }
-      } catch (e) {
-        // silent for now
+      } catch {
+        if (isCurrent) {
+          setSummaryError(
+            "We couldn’t load the taste profile.",
+          );
+        }
       } finally {
-        setLoadingMyVote(false);
+        if (isCurrent) {
+          setIsLoadingSummary(false);
+        }
       }
     };
-    load();
-  }, [wineId, isLoggedIn, token]);
 
-  const handleChange = (field: keyof WineTasteVote, value: number) => {
-    const v = clamp0to10(value);
-    setMyVote((prev) => ({
-      body: prev?.body ?? 5,
-      tannin: prev?.tannin ?? 5,
-      sweetness: prev?.sweetness ?? 5,
-      acidity: prev?.acidity ?? 5,
-      [field]: v,
+    void loadTasteSummary();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    wineId,
+  ]);
+
+  useEffect(() => {
+    if (!wineId || !isAuthenticated) {
+      setMyVote(null);
+      setIsLoadingMyVote(false);
+
+      return;
+    }
+
+    let isCurrent = true;
+
+    const loadMyTasteVote = async () => {
+      try {
+        setIsLoadingMyVote(true);
+        setVoteError(null);
+
+        const vote = await fetchMyTasteVote(
+          wineId,
+        );
+
+        if (isCurrent) {
+          setMyVote(vote);
+        }
+      } catch {
+        /*
+         * A failed personal-vote request should not hide the
+         * public taste summary. Treat it as unavailable/no vote
+         * while retaining an optional error message for the user.
+         */
+        if (isCurrent) {
+          setMyVote(null);
+          setVoteError(
+            "We couldn’t load your taste vote.",
+          );
+        }
+      } finally {
+        if (isCurrent) {
+          setIsLoadingMyVote(false);
+        }
+      }
+    };
+
+    void loadMyTasteVote();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    wineId,
+    isAuthenticated,
+  ]);
+
+  const handleChange = (
+    field: TasteField,
+    value: number,
+  ) => {
+    const clampedValue = clamp0to10(value);
+
+    setMyVote((previousVote) => ({
+      ...(previousVote ?? createDefaultVote()),
+      [field]: clampedValue,
     }));
   };
 
   const handleSave = async () => {
-    if (!isLoggedIn || !token || !myVote) return;
-    try {
-      setSaving(true);
-      setError(null);
-      const saved = await upsertMyTasteVote(wineId, token, myVote);
-      setMyVote(saved);
-      const updatedSummary = await fetchTasteSummary(wineId);
-      setSummary(updatedSummary);
-    } catch (e: any) {
-      setError(e.message ?? "Failed to save taste vote");
-    } finally {
-      setSaving(false);
+    if (!isAuthenticated || !myVote) {
+      return;
     }
+
+    try {
+      setIsSaving(true);
+      setVoteError(null);
+
+      const savedVote = await upsertMyTasteVote(
+        wineId,
+        myVote,
+      );
+
+      setMyVote(savedVote);
+
+      /*
+       * Re-fetch the public aggregate so the profile reflects
+       * the user’s newly saved vote.
+       */
+      const updatedSummary =
+        await fetchTasteSummary(wineId);
+
+      setSummary(updatedSummary);
+
+      setIsVoteOpen(false);
+    } catch {
+      setVoteError(
+        "We couldn’t save your taste vote. Please try again.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openVoteForm = () => {
+    setVoteError(null);
+
+    setMyVote((previousVote) =>
+      previousVote ?? createDefaultVote(),
+    );
+
+    setIsVoteOpen(true);
   };
 
   const votesCount = summary?.votes_count ?? 0;
 
-  const bodySeg = makeSegment(summary?.body);
-  const tanninSeg = makeSegment(summary?.tannin);
-  const sweetSeg = makeSegment(summary?.sweetness);
-  const acidSeg = makeSegment(summary?.acidity);
-
   return (
-    <section className="mt-8">
-      <h2 className="text-lg font-semibold mb-2">What does this wine taste like?</h2>
+    <>
+      <section className="mt-8 rounded-2xl border border-slate-700 bg-slate-900/70 p-4 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-100">
+              Taste profile
+            </h2>
 
-      {error && <p className="text-sm text-red-500 mb-2">{error}</p>}
-      {loadingSummary && <p className="text-xs text-gray-400 mb-1">Loading taste profile...</p>}
-
-      {/* Community sliders */}
-      <div className="grid gap-3 md:grid-cols-2 text-xs text-gray-300 bg-slate-900 rounded-lg px-4 py-3">
-      <TasteSlider
-        labelLeft="Light"
-        labelRight="Bold"
-        startPercent={bodySeg.start}
-        widthPercent={bodySeg.width}
-      />
-      <TasteSlider
-        labelLeft="Smooth"
-        labelRight="Tannic"
-        startPercent={tanninSeg.start}
-        widthPercent={tanninSeg.width}
-      />
-      <TasteSlider
-        labelLeft="Dry"
-        labelRight="Sweet"
-        startPercent={sweetSeg.start}
-        widthPercent={sweetSeg.width}
-      />
-      <TasteSlider
-        labelLeft="Soft"
-        labelRight="Acidic"
-        startPercent={acidSeg.start}
-        widthPercent={acidSeg.width}
-      />
-    </div>
-
-      <p className="mt-1 text-xs text-gray-500">
-        Based on {votesCount} {votesCount === 1 ? "vote" : "votes"}.
-      </p>
-
-      {/* My vote controls */}
-      {isLoggedIn && isVoteOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="w-full max-w-md bg-slate-900 text-gray-100 rounded-lg shadow-lg p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold">
-                Your taste vote (0–10 for each trait)
-              </h3>
-              <button
-                onClick={() => setIsVoteOpen(false)}
-                className="text-xs text-gray-400 hover:text-gray-200"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <UserVoteSlider
-                label="Body"
-                value={myVote?.body ?? 5}
-                onChange={(v) => handleChange("body", v)}
-              />
-              <UserVoteSlider
-                label="Tannin"
-                value={myVote?.tannin ?? 5}
-                onChange={(v) => handleChange("tannin", v)}
-              />
-              <UserVoteSlider
-                label="Sweetness"
-                value={myVote?.sweetness ?? 5}
-                onChange={(v) => handleChange("sweetness", v)}
-              />
-              <UserVoteSlider
-                label="Acidity"
-                value={myVote?.acidity ?? 5}
-                onChange={(v) => handleChange("acidity", v)}
-              />
-            </div>
-
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => setIsVoteOpen(false)}
-                className="px-3 py-1 rounded-md border text-xs bg-white text-slate-900 border-slate-600 hover:bg-slate-600 hover:text-white disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  await handleSave();
-                  setIsVoteOpen(false);
-                }}
-                disabled={saving || loadingMyVote}
-                className="px-3 py-1 rounded-md border text-xs bg-white text-slate-900 border-slate-600 hover:bg-slate-600 hover:text-white disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save taste vote"}
-              </button>
-            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              {votesCount === 0
+                ? "No taste votes yet"
+                : `${votesCount} ${
+                    votesCount === 1
+                      ? "taste vote"
+                      : "taste votes"
+                  }`}
+            </p>
           </div>
+
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={openVoteForm}
+              disabled={isLoadingMyVote}
+              className="rounded-full bg-teal-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoadingMyVote
+                ? "Loading…"
+                : myVote
+                  ? "Edit your vote"
+                  : "Rate taste"}
+            </button>
+          ) : (
+            <span className="rounded-full border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs text-slate-400">
+              Sign in to vote
+            </span>
+          )}
         </div>
-      )}
 
-
-      {/* My vote controls trigger */}
-      {isLoggedIn && (
-        <div className="mt-3">
-          <button
-            onClick={() => setIsVoteOpen(true)}
-            className="inline-flex items-center px-3 py-1.5 rounded-md border text-sm bg-white text-slate-900 border-slate-600 hover:bg-slate-600 hover:text-white disabled:opacity-50"
+        {summaryError && (
+          <div
+            role="alert"
+            className="mb-4 rounded-xl border border-rose-400/40 bg-rose-950/40 px-3 py-2 text-sm text-rose-100"
           >
-            Rate taste
-          </button>
-        </div>
-      )}
+            {summaryError}
+          </div>
+        )}
 
-      {!isLoggedIn && (
-        <p className="mt-3 text-xs text-gray-500">
-          Log in to add your own taste vote.
-        </p>
-      )}
+        {isLoadingSummary ? (
+          <div
+            aria-live="polite"
+            className="rounded-xl border border-slate-700 bg-slate-950/50 px-4 py-5 text-sm text-slate-400"
+          >
+            Loading taste profile…
+          </div>
+        ) : summaryError ? null : votesCount === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/40 px-4 py-5 text-center">
+            <p className="text-sm text-slate-400">
+              This wine has no community taste profile yet.
+            </p>
 
-    </section>
+            <p className="mt-1 text-xs text-slate-500">
+              Be the first person to describe its body,
+              tannins, sweetness, and acidity.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-x-7 gap-y-4 sm:grid-cols-2">
+            {TASTE_DESCRIPTORS.map(
+              ({
+                field,
+                label,
+                leftLabel,
+                rightLabel,
+              }) => {
+                const value = summary?.[field];
+
+                const segment = makeSegment(value);
+
+                return (
+                  <TasteProfileRow
+                    key={field}
+                    label={label}
+                    leftLabel={leftLabel}
+                    rightLabel={rightLabel}
+                    value={value}
+                    startPercent={segment.start}
+                    widthPercent={segment.width}
+                  />
+                );
+              },
+            )}
+          </div>
+        )}
+
+        {!isAuthenticated && (
+          <p className="mt-4 text-xs text-slate-500">
+            Sign in to vote and help create a more
+            accurate taste profile.
+          </p>
+        )}
+      </section>
+
+      {isAuthenticated && isVoteOpen && myVote && (
+        <TasteVoteModal
+          vote={myVote}
+          saving={isSaving}
+          error={voteError}
+          onChange={handleChange}
+          onSave={() => {
+            void handleSave();
+          }}
+          onClose={() => {
+            if (!isSaving) {
+              setIsVoteOpen(false);
+              setVoteError(null);
+            }
+          }}
+        />
+      )}
+    </>
   );
 };
 
-type TasteSliderProps = {
-  labelLeft: string;
-  labelRight: string;
+type TasteProfileRowProps = {
+  label: string;
+  leftLabel: string;
+  rightLabel: string;
+  value: number | null | undefined;
   startPercent: string;
   widthPercent: string;
 };
 
-const TasteSlider: React.FC<TasteSliderProps> = ({
-  labelLeft,
-  labelRight,
+const TasteProfileRow = ({
+  label,
+  leftLabel,
+  rightLabel,
+  value,
   startPercent,
   widthPercent,
-}) => (
+}: TasteProfileRowProps) => (
   <div>
-    <div className="flex justify-between mb-1 text-xs text-gray-300">
-      <span>{labelLeft}</span>
-      <span>{labelRight}</span>
+    <div className="mb-1.5 flex items-center justify-between gap-3">
+      <span className="text-xs font-semibold text-slate-200">
+        {label}
+      </span>
+
+      <span className="text-xs font-semibold text-teal-200">
+        {formatTasteValue(value)}
+
+        <span className="ml-0.5 text-slate-500">
+          /10
+        </span>
+      </span>
     </div>
-    <div className="h-1.5 rounded-full bg-gray-700 relative overflow-hidden">
+
+    <div className="relative h-2 overflow-hidden rounded-full bg-slate-800">
       <div
-        className="absolute top-0 h-full bg-red-700 rounded-full"
-        style={{ left: startPercent, width: widthPercent }}
+        aria-hidden="true"
+        className="absolute top-0 h-full rounded-full bg-gradient-to-r from-teal-400 to-teal-300"
+        style={{
+          left: startPercent,
+          width: widthPercent,
+        }}
       />
+    </div>
+
+    <div className="mt-1 flex justify-between text-[10px] text-slate-500">
+      <span>
+        {leftLabel}
+      </span>
+
+      <span>
+        {rightLabel}
+      </span>
     </div>
   </div>
 );
 
-type UserVoteSliderProps = {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
+type TasteVoteModalProps = {
+  vote: WineTasteVote;
+  saving: boolean;
+  error: string | null;
+  onChange: (
+    field: TasteField,
+    value: number,
+  ) => void;
+  onSave: () => void;
+  onClose: () => void;
 };
 
-const UserVoteSlider: React.FC<UserVoteSliderProps> = ({
-  label,
-  value,
+const TasteVoteModal = ({
+  vote,
+  saving,
+  error,
   onChange,
-}) => (
-  <div className="flex items-center gap-3 text-sm text-gray-200">
-    <span className="w-20">{label}</span>
+  onSave,
+  onClose,
+}: TasteVoteModalProps) => (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="taste-vote-title"
+  >
+    <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <h3
+            id="taste-vote-title"
+            className="text-lg font-semibold text-slate-100"
+          >
+            Rate this wine’s taste
+          </h3>
+
+          <p className="mt-1 text-sm text-slate-400">
+            Move each slider from 0 to 10.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          aria-label="Close taste voting dialog"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-600 bg-slate-800 text-slate-300 transition hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          ×
+        </button>
+      </div>
+
+      {error && (
+        <div
+          role="alert"
+          className="mb-4 rounded-xl border border-rose-400/40 bg-rose-950/40 px-3 py-2 text-sm text-rose-100"
+        >
+          {error}
+        </div>
+      )}
+
+      <div className="space-y-5">
+        {TASTE_DESCRIPTORS.map(
+          ({
+            field,
+            label,
+            leftLabel,
+            rightLabel,
+          }) => (
+            <UserTasteSlider
+              key={field}
+              label={label}
+              leftLabel={leftLabel}
+              rightLabel={rightLabel}
+              value={vote[field]}
+              disabled={saving}
+              onChange={(value) => {
+                onChange(field, value);
+              }}
+            />
+          ),
+        )}
+      </div>
+
+      <div className="mt-6 flex flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="rounded-full border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={saving}
+          className="rounded-full bg-teal-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-teal-300 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {saving
+            ? "Saving…"
+            : "Save taste vote"}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+type UserTasteSliderProps = {
+  label: string;
+  leftLabel: string;
+  rightLabel: string;
+  value: number;
+  disabled: boolean;
+  onChange: (value: number) => void;
+};
+
+const UserTasteSlider = ({
+  label,
+  leftLabel,
+  rightLabel,
+  value,
+  disabled,
+  onChange,
+}: UserTasteSliderProps) => (
+  <div>
+    <div className="mb-2 flex items-center justify-between">
+      <span className="text-sm font-semibold text-slate-200">
+        {label}
+      </span>
+
+      <span className="rounded-full border border-teal-400/30 bg-teal-400/10 px-2 py-0.5 text-xs font-semibold text-teal-200">
+        {value}
+
+        <span className="text-teal-100/60">
+          /10
+        </span>
+      </span>
+    </div>
+
     <input
       type="range"
       min={0}
       max={10}
       step={1}
       value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className="flex-1 accent-red-700"
+      disabled={disabled}
+      onChange={(event) => {
+        onChange(
+          Number(event.target.value),
+        );
+      }}
+      className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-teal-400 disabled:cursor-not-allowed disabled:opacity-50"
     />
-    <span className="w-6 text-right text-xs text-gray-300">{value}</span>
+
+    <div className="mt-1 flex justify-between text-[10px] text-slate-500">
+      <span>
+        {leftLabel}
+      </span>
+
+      <span>
+        {rightLabel}
+      </span>
+    </div>
   </div>
 );

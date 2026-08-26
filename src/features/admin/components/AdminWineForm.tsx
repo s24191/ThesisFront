@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import type {Country, Region, TasteProfile, Wine, WineType} from "@/features/admin/adminLookupsApi"
+import type {Country, Region, TasteProfile, Wine, WineType} from "@/features/admin/types";
 
 type WinePayload = {
   name: string

@@ -1,4 +1,4 @@
-import type { AdminResource } from "@/features/admin/adminLookupsApi"
+import type {AdminResource} from "@/features/admin/types";
 
 type Props = {
   value: AdminResource

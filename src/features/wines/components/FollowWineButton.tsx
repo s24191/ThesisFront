@@ -1,56 +1,85 @@
-import React, { useEffect, useState } from "react";
-const API_URL = import.meta.env.VITE_API_URL;
+import {
+  useEffect,
+  useState,
+} from "react";
 
-type FollowState = "loading" | "followed" | "not-followed";
+import {
+  wineFollowApi,
+} from "@/features/wines/api/wineFollowApi";
 
-type Props = {
+type FollowState =
+  | "loading"
+  | "followed"
+  | "not-followed";
+
+type FollowWineButtonProps = {
   wineId: number;
   isLoggedIn: boolean;
-  token: string | null;
 };
 
-export const FollowWineButton: React.FC<Props> = ({ wineId, isLoggedIn, token }) => {
-  const [followState, setFollowState] = useState<FollowState>("loading");
+export const FollowWineButton = ({
+  wineId,
+  isLoggedIn,
+}: FollowWineButtonProps) => {
+  const [followState, setFollowState] =
+    useState<FollowState>("loading");
 
-   useEffect(() => {
-    if (!wineId || !isLoggedIn || !token) {
+  useEffect(() => {
+    if (!wineId || !isLoggedIn) {
       setFollowState("not-followed");
       return;
     }
 
-    const loadFollow = async () => {
+    const loadFollowStatus = async () => {
       try {
-        const res = await fetch(`${API_URL}/wines/${wineId}/follow`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error();
-        const isFollowing = (await res.json()) as boolean;
-        setFollowState(isFollowing ? "followed" : "not-followed");
+        const isFollowing =
+          await wineFollowApi.getStatus(wineId);
+
+        setFollowState(
+          isFollowing
+            ? "followed"
+            : "not-followed",
+        );
       } catch {
+        /*
+         * If the backend returns 401, the shared Axios
+         * interceptor clears auth and sends the user to login.
+         */
         setFollowState("not-followed");
       }
     };
 
-    loadFollow();
-  }, [wineId, isLoggedIn, token]);
-
+    void loadFollowStatus();
+  }, [
+    wineId,
+    isLoggedIn,
+  ]);
 
   const toggleFollow = async () => {
-    if (!wineId || followState === "loading" || !isLoggedIn || !token) return;
+    if (
+      !wineId ||
+      followState === "loading" ||
+      !isLoggedIn
+    ) {
+      return;
+    }
 
-    const method = followState === "followed" ? "DELETE" : "POST";
-    const prev = followState;
+    const previousState = followState;
+
     setFollowState("loading");
 
     try {
-      const res = await fetch(`${API_URL}/wines/${wineId}/follow`, {
-        method,
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error();
-      setFollowState(method === "POST" ? "followed" : "not-followed");
+      if (previousState === "followed") {
+        await wineFollowApi.unfollow(wineId);
+
+        setFollowState("not-followed");
+      } else {
+        await wineFollowApi.follow(wineId);
+
+        setFollowState("followed");
+      }
     } catch {
-      setFollowState(prev);
+      setFollowState(previousState);
     }
   };
 
@@ -59,21 +88,42 @@ export const FollowWineButton: React.FC<Props> = ({ wineId, isLoggedIn, token })
   }
 
   return (
-  <button
-    type="button"
-    onClick={toggleFollow}
-    disabled={followState === "loading"}
-    className={
-      followState === "followed"
-        ? "inline-flex items-center px-3 py-1 rounded-full border text-sm bg-slate-700 text-white border-slate-900 hover:bg-slate-800 disabled:opacity-50"
-        : "inline-flex items-center px-3 py-1 rounded-full border text-sm bg-white text-slate-900 border-slate-600 hover:bg-slate-600 hover:text-white disabled:opacity-50"
-    }
-  >
-    {followState === "loading"
-      ? "Loading..."
-      : followState === "followed"
-      ? "Unfollow"
-      : "Follow"}
-  </button>
+    <button
+      type="button"
+      onClick={() => {
+        void toggleFollow();
+      }}
+      disabled={followState === "loading"}
+      aria-pressed={followState === "followed"}
+      className={[
+        "inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        followState === "followed"
+          ? "border-teal-400/60 bg-teal-950 text-teal-100 hover:border-rose-400/60 hover:bg-rose-950 hover:text-rose-100"
+          : "border-slate-600 bg-slate-800 text-slate-100 hover:border-teal-400 hover:bg-teal-400 hover:text-slate-950",
+      ].join(" ")}
+    >
+      <span
+        aria-hidden="true"
+        className={[
+          "text-base leading-none",
+          followState === "followed"
+            ? "text-teal-300"
+            : "text-slate-400",
+        ].join(" ")}
+      >
+        {followState === "followed"
+          ? "✓"
+          : "+"}
+      </span>
+
+      <span>
+        {followState === "loading"
+          ? "Loading…"
+          : followState === "followed"
+            ? "Following"
+            : "Follow"}
+      </span>
+    </button>
   );
 };

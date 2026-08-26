@@ -1,100 +1,157 @@
-import type {WineCardWine} from "../types";
-import { WineImageCarousel } from "./WineImageCarousel";
-import {Link} from "react-router-dom";
+
+import {
+  WineImageCarousel,
+} from "./WineImageCarousel";
+
+import {
+  Link,
+} from "react-router-dom";
+import type {WineCardWine} from "@/features/wines/types";
 
 type WineCardProps = {
-  wine: WineCardWine
+  wine: WineCardWine;
 };
 
+function toDisplayNumber(
+  value: number | string | null | undefined,
+): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
 
+  const numberValue =
+    typeof value === "number"
+      ? value
+      : Number(value);
 
-export const WineCard = ({ wine }: WineCardProps) => {
-  const cheapest = wine.best_price;
-  const offers = (wine as any).offers ?? [];
-  const rating = wine.rating;
+  return Number.isFinite(numberValue)
+    ? numberValue
+    : null;
+}
+
+export const WineCard = ({
+  wine,
+}: WineCardProps) => {
+
+  const cheapest = toDisplayNumber(
+    wine.best_price,
+  );
+
+  const rating = toDisplayNumber(
+    wine.rating,
+  );
 
   const ratingsCount = Number(
     wine.ratings_count ?? 0,
   );
 
   const hasRatings =
-  rating !== null &&
-  ratingsCount > 0;
+    rating !== null &&
+    ratingsCount > 0;
 
   return (
-    <div className="flex border border-black rounded-md overflow-hidden bg-white h-full">
-      <div className="w-32 sm:w-40">
-        <WineImageCarousel wine={wine} />
-      </div>
-
-
-      {/* right: info */}
-      <Link to={`/wines/${wine.id}`}
-        className="flex-1 p-3 sm:p-4 flex flex-col justify-between hover:bg-slate-50"
+    <article className="h-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/70 shadow-sm transition hover:border-teal-400/70 hover:shadow-md">
+      <Link
+        to={`/wines/${wine.id}`}
+        className="group flex h-full min-h-48"
       >
-        <div className="flex justify-between gap-4">
-          <div className="flex flex-col gap-0.5">
-            <span className="font-semibold text-sm sm:text-base text-gray-900">
-              {wine.name}
-            </span>
-            <span className="text-xs sm:text-sm text-gray-700">
-              {wine.country}
-            </span>
-            {wine.region && (
-              <span className="text-xs sm:text-sm text-gray-700">
-                {wine.region}
-              </span>
+        <div className="w-28 shrink-0 border-r border-slate-700 sm:w-32">
+          <WineImageCarousel
+            wine={wine}
+            className="h-full rounded-none"
+          />
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col p-3 sm:p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="line-clamp-2 text-sm font-semibold leading-5 text-slate-100 transition group-hover:text-teal-200 sm:text-base">
+                {wine.name}
+              </h2>
+
+              <p className="mt-1 line-clamp-1 text-xs text-slate-400">
+                {wine.country}
+
+                {wine.region && (
+                  <>
+                    {" · "}
+                    {wine.region}
+                  </>
+                )}
+              </p>
+
+              {(wine.wine_type || wine.taste) && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {wine.wine_type && (
+                    <span className="rounded-full border border-teal-400/25 bg-teal-400/10 px-2 py-0.5 text-[10px] font-semibold capitalize text-teal-200">
+                      {wine.wine_type}
+                    </span>
+                  )}
+
+                  {wine.taste && (
+                    <span className="rounded-full border border-slate-600 bg-slate-800 px-2 py-0.5 text-[10px] font-medium capitalize text-slate-300">
+                      {wine.taste}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="shrink-0 text-right">
+              {hasRatings ? (
+                <>
+                  <div className="flex items-center justify-end gap-1 text-sm font-bold text-amber-300 sm:text-base">
+                    <span aria-hidden="true">
+                      ★
+                    </span>
+
+                    <span>
+                      {rating.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <p className="mt-0.5 text-[10px] text-slate-500">
+                    {ratingsCount}{" "}
+                    {ratingsCount === 1
+                      ? "rating"
+                      : "ratings"}
+                  </p>
+                </>
+              ) : (
+                <div className="text-sm text-slate-500">
+                  ★ –
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-auto pt-4">
+            {cheapest !== null ? (
+              <div className="flex items-end justify-between gap-3 border-t border-slate-700 pt-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                    Best price
+                  </p>
+
+                  <p className="mt-0.5 text-sm font-semibold text-teal-200">
+                    {cheapest.toFixed(2)} zł
+                  </p>
+                </div>
+
+                <span className="text-xs font-medium text-slate-400 transition group-hover:text-teal-200">
+                  View wine →
+                </span>
+              </div>
+            ) : (
+              <div className="border-t border-slate-700 pt-3">
+                <p className="text-xs text-slate-500">
+                  No offers available
+                </p>
+              </div>
             )}
           </div>
-
-          <div className="text-right text-gray-900">
-            <div className="text-sm sm:text-lg font-semibold leading-none flex items-center justify-end gap-1">
-              <span className="text-yellow-500">★</span>
-              <span>
-                {wine.rating != null ? rating : "–"}
-              </span>
-            </div>
-            <div className="text-[10px] sm:text-xs text-gray-600">
-              {hasRatings
-               ? `${ratingsCount} ${
-                   ratingsCount === 1
-                     ? "rating"
-                     : "ratings"
-                 }`
-               : "–"}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-2 space-y-0.5 text-xs sm:text-sm text-gray-900">
-          {cheapest !== null && (
-            <div className="text-gray-800">
-              Best price: {cheapest} zł
-            </div>
-          )}
-          {offers.length === 0 ? (
-            <div className="text-gray-500">No offers available</div>
-          ) : (
-            offers.map(
-              (offer: { shop_name: string; shop_url: string; price: number }) => (
-                <div key={`${offer.shop_name}-${offer.shop_url}`}
-                     className="flex gap-1 items-center"
-                     onClick={(e) => e.stopPropagation()}
-                >
-                  <span className="text-gray-700">{offer.shop_name}</span>
-                  <span>{offer.price} zł</span>
-                  <a
-                    href={offer.shop_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="ml-auto text-[10px] sm:text-xs text-indigo-600 hover:underline"
-                  >
-                    Go to shop
-                  </a>
-            </div>
-          ),))}
         </div>
       </Link>
-    </div>
+    </article>
   );
 };

@@ -1,7 +1,4 @@
-import type {
-  AdminResource,
-  Country,
-} from "@/features/admin/adminLookupsApi"
+import type {AdminResource, Country} from "@/features/admin/types";
 
 type Props = {
   resource: Exclude<AdminResource, "wines">
