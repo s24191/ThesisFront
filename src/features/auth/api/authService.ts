@@ -18,13 +18,11 @@ export const loginUser = async (email: string, password: string): Promise<LoginR
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     skipAuthErrorHandling: true,
   });
-  return loginResponseSchema.parse(
-    res.data,
-  );
+  return loginResponseSchema.parse(res.data);
 };
 
 export const registerUser = async (data: RegisterRequest): Promise<UserProfile> => {
-  const response = await client.post<unknown>("/auth/register",
+  const res = await client.post<unknown>("/auth/register",
     {
       email: data.email,
       password: data.password,
@@ -34,7 +32,5 @@ export const registerUser = async (data: RegisterRequest): Promise<UserProfile> 
     },
     {skipAuthErrorHandling: true,}
   );
-  return userProfileSchema.parse(
-    response.data,
-  );
+  return userProfileSchema.parse(res.data);
 };

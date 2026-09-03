@@ -76,7 +76,7 @@ export const WineImageCarousel: React.FC<Props> = ({ wine, className }) => {
 
   return (
     <div
-      className={`relative w-full aspect-[2/3] overflow-hidden cursor-pointer ${className}`}
+      className={`relative flex h-full w-full aspect-[2/3] justify-center overflow-hidden bg-slate-50 cursor-pointer ${className}`}
       onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -84,7 +84,7 @@ export const WineImageCarousel: React.FC<Props> = ({ wine, className }) => {
       <img
         src={images[index]}
         alt={`${wine.name} image ${index + 1} of ${images.length}`}
-        className="h-full w-full object-cover"
+        className="block h-full w-auto max-w-none object-contain"
         loading="lazy"
         onError={(e) => {
           (e.currentTarget as HTMLImageElement).src = FALLBACK;
