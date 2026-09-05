@@ -3,6 +3,7 @@ export type WineOffer = {
   shop_url: string;
   price: number | string;
   image_url?: string | null;
+  available: boolean;
 };
 
 export type WineCardOffer = {

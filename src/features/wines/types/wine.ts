@@ -16,6 +16,7 @@ export type WineCardWine = {
   ratings_count: number | null;
 
   best_price: number | string | null;
+  available: boolean;
   offers: WineCardOffer[];
   image_url: string | null;
 };

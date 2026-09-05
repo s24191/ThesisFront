@@ -19,6 +19,6 @@ export type WineDetails = {
 
   rating: number | string | null;
   ratings_count: number | null;
-
+  available: boolean;
   offers: WineOffer[];
 };

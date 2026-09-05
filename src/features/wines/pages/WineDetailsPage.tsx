@@ -164,25 +164,27 @@ export const WineDetailsPage = () => {
     ? wine.offers
     : [];
 
-  const cheapestPrice = offers.reduce<
-    number | null
-  >(
+  const availableOffers = offers.filter(
+    (offer) => offer.available,
+  );
+
+  const cheapestPrice = availableOffers.reduce<number | null>(
     (currentLowestPrice, offer) => {
-      const offerPrice = toDisplayNumber(
-        offer.price,
-      );
+      const offerPrice = toDisplayNumber(offer.price);
 
       if (offerPrice === null) {
         return currentLowestPrice;
       }
 
-      return currentLowestPrice === null ||
-        offerPrice < currentLowestPrice
+      return currentLowestPrice === null || offerPrice < currentLowestPrice
         ? offerPrice
         : currentLowestPrice;
     },
     null,
   );
+
+  const hasRetailerOffers = offers.length > 0;
+  const isAvailable = availableOffers.length > 0;
 
   const wineRating = toDisplayNumber(
     wine.rating,
@@ -346,23 +348,24 @@ export const WineDetailsPage = () => {
                       Where to buy
                     </h2>
 
-                    {cheapestPrice !== null && (
+                    {isAvailable ? (
                       <p className="mt-0.5 text-xs text-slate-500">
                         Best price{" "}
 
                         <span className="font-semibold text-teal-200">
-                          {cheapestPrice.toFixed(2)} zł
+                          {cheapestPrice?.toFixed(2)} zł
                         </span>
                       </p>
-                    )}
+                    ): hasRetailerOffers ? (
+                      <p className="font-semibold text-slate-400">
+                        Unavailable
+                      </p>) : null}
                   </div>
 
-                  {offers.length > 0 && (
+                  {hasRetailerOffers && (
                     <span className="rounded-full border border-slate-600 bg-slate-800 px-2.5 py-1 text-xs text-slate-400">
                       {offers.length}{" "}
-                      {offers.length === 1
-                        ? "offer"
-                        : "offers"}
+                      {offers.length === 1 ? "offer" : "offers"}
                     </span>
                   )}
                 </div>
@@ -391,20 +394,28 @@ export const WineDetailsPage = () => {
                           </span>
 
                           <div className="flex items-center gap-3">
-                            {offerPrice !== null && (
-                              <span className="text-sm font-semibold text-teal-200">
-                                {offerPrice.toFixed(2)} zł
+                            {offer.available ? (
+                              <>
+                                {offerPrice !== null && (
+                                  <span className="text-sm font-semibold text-teal-200">
+                                    {offerPrice.toFixed(2)} zł
+                                  </span>
+                                )}
+
+                                <a
+                                  href={offer.shop_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center rounded-full border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:border-teal-400 hover:bg-teal-400 hover:text-slate-950"
+                                >
+                                  Go to shop
+                                </a>
+                              </>
+                            ) : (
+                              <span className="text-sm font-semibold text-slate-400">
+                                Unavailable
                               </span>
                             )}
-
-                            <a
-                              href={offer.shop_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center rounded-full border border-slate-600 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-100 transition hover:border-teal-400 hover:bg-teal-400 hover:text-slate-950"
-                            >
-                              Go to shop
-                            </a>
                           </div>
                         </li>
                       );
