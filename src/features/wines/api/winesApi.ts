@@ -3,7 +3,7 @@ import type {WineCardWine, WineFilters} from "@/features/wines/types";
 
 
 const WINE_ROUTES = {
-  list: "/wines",
+  list: "/wines/",
 
   countries:
     "/wines/countries",
