@@ -28,13 +28,7 @@ interface WineFiltersBarProps {
   onChange: (filters: WineFilters) => void;
 }
 
-/*
- * API representation:
- *
- *   price-asc,volume-asc
- *
- * The order in this string is the sort precedence.
- */
+
 
 export const WineFiltersBar: FC<
   WineFiltersBarProps
@@ -147,13 +141,7 @@ export const WineFiltersBar: FC<
     [regions],
   );
 
-  /*
-   * Click cycle:
-   *
-   * Not selected → add using default direction
-   * Default direction → reverse direction
-   * Reverse direction → remove from multi-sort
-   */
+
   const toggleSort = (
     key: SortKey,
   ) => {
@@ -276,7 +264,7 @@ export const WineFiltersBar: FC<
               type="search"
               value={filters.search ?? ""}
               onChange={handleSearchChange}
-              placeholder="Search wines, regions, producers…"
+              placeholder="Search wines…"
               className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20"
             />
           </label>

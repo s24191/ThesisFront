@@ -149,18 +149,7 @@ export const NavBar = () => {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Link
-            to="/wines?page=1&pageSize=25"
-            aria-label="Search wines"
-            onClick={closeAllMenus}
-            className="hidden rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-teal-200 focus:outline-none focus:ring-2 focus:ring-teal-400/70 sm:inline-flex"
-          >
-            <Search
-              aria-hidden="true"
-              className="h-5 w-5"
-            />
-          </Link>
-
+          
           <div
             ref={accountMenuRef}
             className="relative"

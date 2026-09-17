@@ -286,14 +286,14 @@ export const WineDetailsPage = () => {
               </div>
 
               <div className="mb-5 grid gap-2 sm:grid-cols-2">
-                {(wine.type_of_wine || wine.taste) && (
+                {(wine.wine_type || wine.taste) && (
                   <div className="rounded-xl border border-slate-700 bg-slate-950/50 px-3 py-2">
                     <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                       Style
                     </span>
 
                     <span className="mt-1 block text-sm font-medium text-slate-200">
-                      {wine.type_of_wine ?? "–"}
+                      {wine.wine_type ?? "–"}
 
                       {wine.taste
                         ? ` · ${wine.taste}`

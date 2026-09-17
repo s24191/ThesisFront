@@ -10,7 +10,7 @@ export type WineDetails = {
   country: string;
   region: string | null;
 
-  type_of_wine: string | null;
+  wine_type: string | null;
   taste: string | null;
 
   grapes: string | null;

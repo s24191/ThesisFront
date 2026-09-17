@@ -6,6 +6,7 @@ type WineImageOffer = {
 
 type WineImageSource = {
   name: string;
+  image_url?: string | null;
   offers?: WineImageOffer[];
 };
 
@@ -21,15 +22,18 @@ export const WineImageCarousel: React.FC<Props> = ({ wine, className }) => {
     () =>
       Array.from(
         new Set(
-          offers
-            .map((offer) => offer.image_url)
-            .filter(
-              (imageUrl): imageUrl is string =>
-                Boolean(imageUrl),
-            )
+          [
+            wine.image_url,
+            ...offers.map(
+              (offer) => offer.image_url,
+            ),
+          ].filter(
+            (imageUrl): imageUrl is string =>
+              Boolean(imageUrl),
+          )
         )
       ),
-    [offers]
+    [wine.image_url, offers],
   );
 
   const FALLBACK =

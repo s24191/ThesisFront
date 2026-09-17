@@ -142,7 +142,7 @@ export const Home = () => {
                   onChange={(event) =>
                     setSearch(event.target.value)
                   }
-                  placeholder="Search by wine, producer, region, or country…"
+                  placeholder="Search by wine name"
                   className="w-full rounded-xl border border-slate-700 bg-slate-900/90 px-4 py-3 text-sm text-slate-100 shadow-sm placeholder:text-slate-500 transition focus:border-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-400/20"
                 />
               </label>
@@ -156,17 +156,6 @@ export const Home = () => {
             </form>
 
             <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400">
-              <span>
-                Search by name, producer, region, or country
-              </span>
-
-              <span
-                aria-hidden="true"
-                className="hidden text-slate-700 sm:inline"
-              >
-                •
-              </span>
-
               <Link
                 to="/wines?page=1&pageSize=25"
                 className="font-semibold text-teal-300 transition hover:text-teal-200"
